@@ -1,0 +1,9 @@
+
+[Server]
+
+	#The Leveling System
+	[Server.leveling]
+		#The max level a player can have
+		#Range: 1 ~ 999
+		maxlevel = 20
+
