@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ormoyo.ormoyoutil.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "ormoyoutil.refmap.json",
+  "mixins": [
+    "MixinPlayerEntity",
+    "MixinServerPlayerEntity"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
