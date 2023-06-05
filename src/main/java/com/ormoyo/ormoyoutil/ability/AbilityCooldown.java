@@ -1,9 +1,17 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.ormoyo.ormoyoutil.util.NonNullMap;
+import net.minecraft.client.settings.KeyBinding;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
+
+import java.util.Map;
+
+@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityCooldown extends AbilityKeybindingBase
 {
-    protected int cooldownTick;
-    protected boolean isOnCooldown;
+    private final Map<String, MutableInt> cooldownTicks = new NonNullMap<>(new MutableInt(), true);
+    private final Map<String, MutableBoolean> isOnCooldown = new NonNullMap<>(new MutableBoolean(), true);
 
     public AbilityCooldown(IAbilityHolder owner)
     {
@@ -13,32 +21,45 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     @Override
     public void onUpdate()
     {
-        if (!isOnCooldown)
+        for (KeyBinding keybind : this.getKeybinds())
         {
-            super.onUpdate();
-            return;
-        }
+            String keyName = this.getKeybindName(keybind);
+            MutableBoolean isOnCooldown = this.isOnCooldown.get(keyName);
 
-        this.cooldownTick++;
-        this.cooldownTick %= this.getCooldown();
+            if (!isOnCooldown.booleanValue())
+            {
+                super.onUpdate();
+                return;
+            }
 
-        if (this.cooldownTick == 0)
-        {
-            this.isOnCooldown = false;
+            MutableInt cooldownTick = this.cooldownTicks.get(keyName);
+
+            cooldownTick.increment();
+            cooldownTick.setValue(cooldownTick.intValue() % this.getCooldown());
+
+            if (cooldownTick.intValue() == 0)
+            {
+                isOnCooldown.setFalse();
+            }
         }
     }
 
-    public void setIsOnCooldown(boolean isOnCooldown)
+    protected void setIsOnCooldown(String keybind, boolean isOnCooldown)
     {
         if (!isOnCooldown)
-            this.cooldownTick = 0;
+            this.cooldownTicks.get(keybind).setValue(0);
 
-        this.isOnCooldown = isOnCooldown;
+        this.isOnCooldown.get(keybind).setValue(isOnCooldown);
+    }
+
+    public boolean isOnCooldown(String keybind)
+    {
+        return this.isOnCooldown.get(keybind).booleanValue();
     }
 
     public boolean isOnCooldown()
     {
-        return this.isOnCooldown;
+        return this.isOnCooldown(null);
     }
 
     public abstract int getCooldown();

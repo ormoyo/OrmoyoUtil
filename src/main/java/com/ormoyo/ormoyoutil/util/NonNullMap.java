@@ -23,6 +23,8 @@ public class NonNullMap<K, V> extends HashMap<K, V>
 
     public NonNullMap(V defaultValue, boolean hasNullKeys)
     {
+        super();
+
         Preconditions.checkNotNull(defaultValue);
         this.defaultValue = () -> defaultValue;
 
@@ -31,6 +33,28 @@ public class NonNullMap<K, V> extends HashMap<K, V>
 
     public NonNullMap(Supplier<V> defaultValueFunc, boolean hasNullKeys)
     {
+        super();
+
+        Preconditions.checkNotNull(defaultValueFunc);
+        this.defaultValue = defaultValueFunc;
+
+        this.hasNullKeys = hasNullKeys;
+    }
+
+    public NonNullMap(int initialCapacity, V defaultValue, boolean hasNullKeys)
+    {
+        super(initialCapacity);
+
+        Preconditions.checkNotNull(defaultValue);
+        this.defaultValue = () -> defaultValue;
+
+        this.hasNullKeys = hasNullKeys;
+    }
+
+    public NonNullMap(int initialCapacity, Supplier<V> defaultValueFunc, boolean hasNullKeys)
+    {
+        super(initialCapacity);
+
         Preconditions.checkNotNull(defaultValueFunc);
         this.defaultValue = defaultValueFunc;
 
@@ -71,12 +95,16 @@ public class NonNullMap<K, V> extends HashMap<K, V>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public V get(Object key)
     {
         V v = super.get(key);
 
         if (v == null)
+        {
             v = this.defaultValue.get();
+            this.put((K) key, v);
+        }
 
         return v;
     }

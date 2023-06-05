@@ -10,15 +10,23 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.settings.IKeyConflictContext;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 
+@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityKeybindingBase extends Ability
 {
-    private KeyBinding[] keybinds;
-    private final NonNullMap<String, Boolean> hasBeenPressed = new NonNullMap<>(false, true);
+    private final KeyBinding[] keybinds;
+    private final NonNullMap<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
 
     public AbilityKeybindingBase(IAbilityHolder owner)
     {
         super(owner);
+
+        KeyBinding[] keybinds = this.getKeybinds();
+        if(keybinds == null)
+            keybinds = new KeyBinding[] {this.getKey()};
+
+        this.keybinds = keybinds;
     }
 
     @Override
@@ -29,25 +37,18 @@ public abstract class AbilityKeybindingBase extends Ability
 
         for (KeyBinding keybind : this.keybinds)
         {
-            if (keybind.isKeyDown() && !this.hasBeenPressed.get(keybind.getKeyDescription()))
-            {
-                String keyName = keybind.getKeyDescription()
-                        .equals(this.getKey().getKeyDescription()) ?
-                        null :
-                        keybind.getKeyDescription();
+            String keyName = this.getKeybindName(keybind);
+            MutableBoolean hasBeenPressed = this.hasBeenPressed.get(keyName);
 
+            if (keybind.isKeyDown() && !hasBeenPressed.booleanValue())
+            {
                 this.onKeyPress(keyName);
-                this.hasBeenPressed.put(keyName, true);
+                hasBeenPressed.setTrue();
             }
-            else if (!keybind.isKeyDown() && this.hasBeenPressed.get(keybind.getKeyDescription()))
+            else if (!keybind.isKeyDown() && hasBeenPressed.booleanValue())
             {
-                String keyName = keybind.getKeyDescription()
-                        .equals(this.getKey().getKeyDescription()) ?
-                        null :
-                        keybind.getKeyDescription();
-
                 this.onKeyRelease(keyName);
-                this.hasBeenPressed.put(keyName, false);
+                hasBeenPressed.setFalse();
             }
         }
     }
@@ -67,9 +68,11 @@ public abstract class AbilityKeybindingBase extends Ability
             {
                 if (keybinding.getKeyDescription().equals("key." + location.getNamespace() + "." + location.getPath()))
                 {
-                    this.keybinds = new KeyBinding[]{keybinding};
+                    return keybinding;
                 }
             }
+
+            return null;
         }
 
         return this.keybinds[0];
@@ -102,15 +105,23 @@ public abstract class AbilityKeybindingBase extends Ability
         OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageOnAbilityKey(this.getEntry(), keybind, false));
     }
 
-    public InputMappings.Type getKeyType()
+    protected final String getKeybindName(KeyBinding keybind)
     {
-        return InputMappings.Type.KEYSYM;
+        return keybind.getKeyDescription()
+                .equals(this.getKey().getKeyDescription()) ?
+                null :
+                keybind.getKeyDescription();
     }
 
     /**
      * @return The keycode of the ability to be activated with
      */
     public abstract int getKeyCode();
+
+    public InputMappings.Type getKeyType()
+    {
+        return InputMappings.Type.KEYSYM;
+    }
 
     public KeyModifier getKeyModifier()
     {

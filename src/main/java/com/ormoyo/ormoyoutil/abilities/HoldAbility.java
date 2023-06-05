@@ -2,26 +2,36 @@ package com.ormoyo.ormoyoutil.abilities;
 
 import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
 import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.util.NonNullMap;
+import net.minecraft.client.settings.KeyBinding;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import java.util.Map;
+
+@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class HoldAbility extends AbilityCooldown
 {
-    protected boolean isHolding = false;
+    private final Map<String, MutableBoolean> isHolding = new NonNullMap<>(this.getKeybinds().length, new MutableBoolean(), true);
 
     public HoldAbility(IAbilityHolder owner)
     {
         super(owner);
     }
 
-    public abstract boolean hold();
+    public abstract boolean hold(String keybind);
 
     @Override
     public void onUpdate()
     {
         super.onUpdate();
 
-        if (this.isHolding && !this.isOnCooldown())
+        for (KeyBinding keybind : this.getKeybinds())
         {
-            this.hold();
+            String keyName = this.getKeybindName(keybind);
+            if (this.isHolding.get(keyName).booleanValue() && !this.isOnCooldown())
+            {
+                this.hold(keyName);
+            }
         }
     }
 
@@ -29,13 +39,9 @@ public abstract class HoldAbility extends AbilityCooldown
     public void onKeyPress(String keybind)
     {
         super.onKeyPress(keybind);
-        if (!this.isHolding)
-        {
-            if (this.hold())
-            {
-                this.isHolding = true;
-            }
-        }
+
+        MutableBoolean isHolding = this.isHolding.get(keybind);
+        isHolding.setValue(!isHolding.booleanValue() && this.hold(keybind));
     }
 
     @Override
@@ -43,13 +49,26 @@ public abstract class HoldAbility extends AbilityCooldown
     {
         super.onKeyRelease(keybind);
 
-        if (keybind != null)
+        MutableBoolean isHolding = this.isHolding.get(keybind);
+        if (!isHolding.booleanValue())
             return;
 
-        if (!this.isHolding)
-            return;
+        isHolding.setFalse();
+        this.setIsOnCooldown(keybind, true);
+    }
 
-        this.isHolding = false;
-        this.setIsOnCooldown(true);
+    protected void setIsHolding(String keybind, boolean isHolding)
+    {
+        this.isHolding.get(keybind).setValue(isHolding);
+    }
+
+    protected boolean isHolding(String keybind)
+    {
+        return this.isHolding.get(keybind).booleanValue();
+    }
+
+    protected boolean isHolding()
+    {
+        return this.isHolding(null);
     }
 }

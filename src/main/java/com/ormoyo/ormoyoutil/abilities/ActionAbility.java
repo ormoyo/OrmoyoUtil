@@ -10,7 +10,7 @@ public abstract class ActionAbility extends AbilityCooldown
         super(owner);
     }
 
-    public abstract boolean action();
+    public abstract boolean action(String keybind);
 
     public abstract int getCooldown();
 
@@ -18,13 +18,6 @@ public abstract class ActionAbility extends AbilityCooldown
     public void onKeyPress(String keybind)
     {
         super.onKeyPress(keybind);
-
-        if (keybind != null)
-            return;
-
-        if (!this.action())
-            return;
-
-        this.setIsOnCooldown(true);
+        this.setIsOnCooldown(keybind, this.action(keybind));
     }
 }
