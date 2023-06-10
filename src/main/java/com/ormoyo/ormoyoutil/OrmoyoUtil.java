@@ -7,6 +7,7 @@ import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
 import com.ormoyo.ormoyoutil.client.OrmoyoResourcePackListener;
+import com.ormoyo.ormoyoutil.commands.AcquireAbilityCommand;
 import com.ormoyo.ormoyoutil.network.NetworkChannel;
 import com.ormoyo.ormoyoutil.network.NetworkHandler;
 import net.minecraft.client.Minecraft;
@@ -15,6 +16,8 @@ import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -30,6 +33,7 @@ import net.minecraftforge.forgespi.language.ModFileScanData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -67,13 +71,22 @@ public class OrmoyoUtil
         {
             NetworkHandler.registerNetworkMessages(data);
         }
+
+        try
+        {
+            Arrays.stream(Ability.class.getDeclaredClasses()).filter(clazz -> clazz.getSimpleName().equals("CommonEventHandler")).findAny().get().getMethod("onInit").invoke(null);
+        }
+        catch (ReflectiveOperationException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     private void doClientStuff(FMLClientSetupEvent event)
     {
-        Minecraft mc = event.getMinecraftSupplier().get();
         event.enqueueWork(() ->
         {
+            Minecraft mc = event.getMinecraftSupplier().get();
             if (event.getMinecraftSupplier().get().getResourceManager() instanceof IReloadableResourceManager)
             {
                 OrmoyoResourcePackListener listener = new OrmoyoResourcePackListener();
@@ -105,6 +118,12 @@ public class OrmoyoUtil
                 }
             }
         });
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event)
+    {
+        AcquireAbilityCommand.register(event.getDispatcher());
     }
 
     public static class Config

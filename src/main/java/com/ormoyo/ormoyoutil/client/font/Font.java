@@ -53,7 +53,7 @@ public class Font extends ForgeRegistryEntry<Font>
 
     public Font(ResourceLocation name, int resolution, boolean antiAliasing)
     {
-        this.setRegistryName(name);
+        this.setRegistryName(checkResourceLocation(name));
 
         this.resolution = resolution;
         this.antiAliasing = antiAliasing;
@@ -61,7 +61,7 @@ public class Font extends ForgeRegistryEntry<Font>
 
     public Font(String name, int resolution, boolean antiAliasing)
     {
-        this.setRegistryName(new ResourceLocation(name));
+        this.setRegistryName(checkResourceLocation(new ResourceLocation(name)));
 
         this.resolution = resolution;
         this.antiAliasing = antiAliasing;
@@ -93,6 +93,11 @@ public class Font extends ForgeRegistryEntry<Font>
         return FONT_REGISTRY;
     }
 
+    private static ResourceLocation checkResourceLocation(ResourceLocation location)
+    {
+        return new ResourceLocation(location.getNamespace(), "font/" + location.getPath());
+    }
+
     public enum FontType
     {
         TTF,
@@ -105,7 +110,7 @@ public class Font extends ForgeRegistryEntry<Font>
         @SubscribeEvent
         public static void onNewRegistry(RegistryEvent.NewRegistry event)
         {
-            FONT_REGISTRY = new RegistryBuilder<Font>().setName(new ResourceLocation(OrmoyoUtil.MODID, "font")).setType(Font.class).setIDRange(0, 2048).create();
+            FONT_REGISTRY = new RegistryBuilder<Font>().setName(new ResourceLocation(OrmoyoUtil.MODID, "assets/ormoyoutil/font")).setType(Font.class).setIDRange(0, 2048).create();
         }
 
         @SubscribeEvent

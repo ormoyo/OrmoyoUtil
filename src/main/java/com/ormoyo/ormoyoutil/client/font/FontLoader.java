@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.texture.NativeImage;
 import net.minecraft.resources.IResource;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.event.AddReloadListenerEvent;
 
 import javax.imageio.ImageIO;
 import java.awt.Font;
@@ -51,7 +52,7 @@ public class FontLoader
         int resolution = font.getResolution();
         boolean antiAliasing = font.hasAntiAliasing();
 
-        try (IResource iresource = Minecraft.getInstance().getResourceManager().getResource(new ResourceLocation("font", font.getRegistryName().getPath())))
+        try (IResource iresource = Minecraft.getInstance().getResourceManager().getResource(font.getRegistryName()))
         {
             InputStream stream = iresource.getInputStream();
 

@@ -87,20 +87,16 @@ public class NetworkHandler
 
             try
             {
-                Class<?> clazz = Class.forName(className);
+                Class clazz = Class.forName(className);
                 Method method = clazz.getMethod(methodName, PacketBuffer.class);
 
-                if (!Modifier.isStatic(method.getModifiers()) || !AbstractMessage.class.isAssignableFrom(method.getReturnType()))
-                {
-                    OrmoyoUtil.LOGGER.fatal("Network decoder method {} at class {} must be static and have a return type of AbstractMessage", method.getName(), className);
-                    return;
-                }
-
-                classes.forEach(message ->
+                classes.forEach(c ->
                 {
                     try
                     {
-                        decoders.put((Class<? extends AbstractMessage>) Class.forName(message.getInternalName().replace('/', '.')), ASMUtils.createMethodCallback(Function.class, method));
+                        Class<?> cla = Class.forName(c.getInternalName().replace('/', '.'));
+                        NetworkHandler.decoders.put((Class<? extends AbstractMessage>) cla,
+                                ASMUtils.createMethodCallback(Function.class, method));
                     }
                     catch (ClassNotFoundException e)
                     {
@@ -108,10 +104,11 @@ public class NetworkHandler
                     }
                 });
             }
-            catch (ClassNotFoundException | NoSuchMethodException e)
+            catch (ReflectiveOperationException e)
             {
-                OrmoyoUtil.LOGGER.fatal("Failed to find network method {} in class {}", methodName, className);
+                throw new RuntimeException(e);
             }
+
         });
         messages.forEach(annotation ->
         {

@@ -1,0 +1,6 @@
+{
+  "argument.ability.notfound": "Unknown ability: %s",
+  "argument.ability.alreadyexists": "The ability %s is already unlocked",
+  "commands.ormoyoutil.acquireability": "You have acquired the ability %s",
+  "ability.ormoyoutil.test.name": "Test"
+}

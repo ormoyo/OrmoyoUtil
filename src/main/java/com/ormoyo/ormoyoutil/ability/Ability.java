@@ -1,9 +1,11 @@
 package com.ormoyo.ormoyoutil.ability;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
+import com.ormoyo.ormoyoutil.abilities.TestAbility;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
 import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
@@ -20,8 +22,10 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
@@ -42,9 +46,11 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.invoke.LambdaConversionException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -60,6 +66,8 @@ public abstract class Ability
         this.entry = Ability.getAbilityClassEntry(this.getClass());
 
         this.syncManager = new AbilitySyncManager(this);
+        ABILITY_DISPLAY_NAMES.put(this.getClass(), this.getTranslatedName());
+
         this.abilityInit();
     }
 
@@ -134,13 +142,13 @@ public abstract class Ability
 
     public String getName()
     {
-        String registryName = this.entry.toString();
+        String registryName = String.valueOf(this.entry);
         return StringUtils.capitalize(registryName.substring(registryName.lastIndexOf('.')));
     }
 
     public ITextComponent getTranslatedName()
     {
-        return new TranslationTextComponent("ability." + this.entry.getRegistryName().getNamespace() + "." + this.getRegistryName().getPath() + ".name");
+        return new TranslationTextComponent("ability." + this.getRegistryName().getNamespace() + "." + this.getRegistryName().getPath() + ".name");
     }
 
     public final ResourceLocation getRegistryName()
@@ -185,18 +193,6 @@ public abstract class Ability
         return false;
     }
 
-    public static Set<Ability> getAbilities(PlayerEntity player)
-    {
-        return DistExecutor.safeRunForDist(() -> () ->
-        {
-
-            return null;
-        }, () -> () ->
-        {
-            return null;
-        });
-    }
-
     public static AbilityEntry getAbilityClassEntry(Class<? extends Ability> clazz)
     {
         for (Entry<RegistryKey<AbilityEntry>, AbilityEntry> entry : Ability.getAbilityRegistry().getEntries())
@@ -210,17 +206,21 @@ public abstract class Ability
     }
 
     private static IForgeRegistry<AbilityEntry> ABILITY_REGISTRY;
-
     public static IForgeRegistry<AbilityEntry> getAbilityRegistry()
     {
         return ABILITY_REGISTRY;
     }
 
     private static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;
-
     public static IForgeRegistry<AbilityEventEntry> getAbilityEventRegistry()
     {
         return ABILITY_EVENT_REGISTRY;
+    }
+
+    private static Map<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES = Maps.newHashMap();
+    public static ITextComponent getAbilityDisplayName(Class<? extends Ability> clazz)
+    {
+        return ABILITY_DISPLAY_NAMES.get(clazz);
     }
 
     @SuppressWarnings("unchecked")
@@ -265,21 +265,14 @@ public abstract class Ability
                         {
                             if (eventType.isAssignableFrom(eventEntry.getEventClass()) || eventEntry.getEventClass().isAssignableFrom(eventType))
                             {
-                                try
-                                {
-                                    listeners.entries().removeIf(cell -> cell.getValue().getEventClass().isAssignableFrom(eventType) && cell.getValue().getMethod().equals(method));
-                                    listeners.put(entry.getRegistryName(), new AbilityEventListener(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType)));
-                                }
-                                catch (Exception e)
-                                {
-                                    e.printStackTrace();
-                                }
+                                listeners.entries().removeIf(cell -> cell.getValue().getEventClass().isAssignableFrom(eventType) && cell.getValue().getMethod().equals(method));
+                                listeners.put(entry.getRegistryName(), new AbilityEventListener(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType)));
                             }
                         }
                     }
                 }
             }
-            catch (Exception e)
+            catch (ReflectiveOperationException | LambdaConversionException e)
             {
                 e.printStackTrace();
             }
@@ -288,25 +281,39 @@ public abstract class Ability
         @SubscribeEvent
         public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event)
         {
-            Collection<Ability> abilities = ((IAbilityHolder) event.getPlayer()).getAbilities();
+            IAbilityHolder abilityHolder = (IAbilityHolder) event.getPlayer();
+            Collection<AbilityEntry> abilities = abilityHolder.getAbilities()
+                    .stream()
+                    .map(Ability::getEntry)
+                    .collect(Collectors.toSet());
+
+            Collection<AbilityEntry> entries = Ability.getAbilityRegistry().getValues()
+                    .stream()
+                    .filter(entry -> abilities.contains(entry) || (entry.getLevel() <= 0 &&
+                            (entry.getCondition() == null || entry.getConditionCheckingEvents().length > 0)))
+                    .collect(Collectors.toSet());
+
             OrmoyoUtil.NETWORK_CHANNEL.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
-                    new MessageSetAbilities(abilities.stream().map(Ability::getEntry).collect(Collectors.toList())));
+                    new MessageSetAbilities(event.getPlayer(), entries));
         }
 
         static
         {
             serverEventAction = event ->
             {
+                if (ServerLifecycleHooks.getCurrentServer() == null)
+                    return;
+
                 PlayerList list = ServerLifecycleHooks.getCurrentServer().getPlayerList();
                 for (ServerPlayerEntity player : list.getPlayers())
                 {
                     IAbilityHolder abilityHolder = (IAbilityHolder) player;
 
-                    if (abilityHolder.getAbilities().isEmpty()) continue;
                     for (Ability ability : abilityHolder.getAbilities())
                     {
-                        if (!ability.isEnabled()) continue;
+                        if (!ability.isEnabled())
+                            continue;
 
                         Collection<IAbilityEventListener> listeners = CommonEventHandler.listeners.get(ability.getRegistryName());
                         for (IAbilityEventListener listener : listeners)
@@ -320,6 +327,9 @@ public abstract class Ability
                             listener.invoke(ability, event);
                         }
                     }
+
+                    if (!(event instanceof PlayerEvent))
+                        continue;
 
                     for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
                     {
@@ -355,10 +365,10 @@ public abstract class Ability
             IAbilityHolder abilityHolder = (IAbilityHolder) Minecraft.getInstance().player;
             Collection<Ability> abilities = abilityHolder.getAbilities();
 
-            if (abilities.isEmpty()) return;
             for (Ability ability : abilities)
             {
-                if (!ability.isEnabled()) continue;
+                if (!ability.isEnabled())
+                    continue;
 
                 Collection<IAbilityEventListener> listeners = CommonEventHandler.listeners.get(ability.getRegistryName());
                 for (IAbilityEventListener listener : listeners)
@@ -372,6 +382,9 @@ public abstract class Ability
                     listener.invoke(ability, event);
                 }
             }
+
+            if (!(event instanceof PlayerEvent))
+                return;
 
             for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
             {
@@ -409,7 +422,10 @@ public abstract class Ability
         @SubscribeEvent
         public static void registerAbilities(RegistryEvent.Register<AbilityEntry> event)
         {
-            event.getRegistry().register(new AbilityEntry(new ResourceLocation(OrmoyoUtil.MODID, "stats"), StatsAbility.class));
+            event.getRegistry().register(AbilityEntryBuilder.create()
+                    .ability(StatsAbility.class)
+                    .id(new ResourceLocation(OrmoyoUtil.MODID, "stats"))
+                    .build());
         }
 
         @SubscribeEvent
@@ -428,12 +444,14 @@ public abstract class Ability
             register(event, InputEvent.class, EventPredicates.INPUT_EVENT);
             register(event, RenderHandEvent.class, EventPredicates.RENDER_HAND_EVENT);
             register(event, ClientPlayerNetworkEvent.class, EventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
+            register(event, GuiOpenEvent.class, EventPredicates.GUI_OPEN_EVENT);
         }
 
+        @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
         public static void registerAbilityEventPredicatesOnClient(RegistryEvent.Register<AbilityEventEntry> event)
         {
-            register(event, GuiScreenEvent.class, EventPredicates.GUI_SCREEN_EVENT);
+            register(event, GuiScreenEvent.class, (ability, player) -> true);
         }
 
         private static <T extends Event> void register(RegistryEvent.Register<AbilityEventEntry> event, Class<T> clazz, IAbilityEventPredicate<T> predicate)
@@ -510,10 +528,6 @@ public abstract class Ability
                     (ability, event) ->
                             !ability.owner.equals(event.getEntity());
 
-            public static final IAbilityEventPredicate<GuiScreenEvent>
-                    GUI_SCREEN_EVENT =
-                    (ability, event) ->
-                            true;
 
             public static final IAbilityEventPredicate<EntityViewRenderEvent>
                     ENTITY_VIEW_RENDER_EVENT =
@@ -534,6 +548,10 @@ public abstract class Ability
                     (ability, event) ->
                             true;
 
+            public static final IAbilityEventPredicate<GuiOpenEvent>
+                    GUI_OPEN_EVENT =
+                    (ability, event) ->
+                            true;
         }
     }
 }

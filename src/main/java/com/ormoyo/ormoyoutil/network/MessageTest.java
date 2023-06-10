@@ -11,14 +11,15 @@ public class MessageTest extends AbstractMessage<MessageTest>
 {
     String player;
 
-    public MessageTest(PlayerEntity player)
+    public MessageTest(String player)
     {
-        this.player = String.valueOf(player.getName());
+        this.player = player;
     }
 
     @Override
     public void encode(PacketBuffer buf)
     {
+        buf.writeString(this.player);
     }
 
     @Override

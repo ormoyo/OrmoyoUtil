@@ -9,8 +9,11 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+@SuppressWarnings("unchecked")
 public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
 {
+    private static final Class<? extends Event>[] EMPTY_CLASS_ARRAY = new Class[0];
+
     Function<IAbilityHolder, ? extends Ability> abilityConstructor;
     private final Class<? extends Ability> clazz;
     private final Class<? extends Event>[] conditionCheckingEvents;
@@ -32,7 +35,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     {
         this.clazz = clazz;
         this.condition = condition != null ? condition : player -> false;
-        this.conditionCheckingEvents = conditionCheckingEvents;
+        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
         this.level = 0;
         this.setRegistryName(name);
     }
@@ -42,7 +45,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     {
         this.clazz = clazz;
         this.condition = condition != null ? condition : player -> false;
-        this.conditionCheckingEvents = conditionCheckingEvents;
+        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
         this.level = Math.max(level, 1);
         this.setRegistryName(name);
     }
@@ -62,7 +65,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     {
         this.clazz = clazz;
         this.condition = condition;
-        this.conditionCheckingEvents = conditionCheckingEvents;
+        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
         this.level = 0;
         this.setRegistryName(name);
     }
@@ -72,7 +75,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     {
         this.clazz = clazz;
         this.condition = condition;
-        this.conditionCheckingEvents = conditionCheckingEvents;
+        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
         this.level = Math.max(level, 1);
         this.setRegistryName(name);
     }
@@ -113,7 +116,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     @Override
     public String toString()
     {
-        return this.getRegistryName().toString();
+        return String.valueOf(this.getRegistryName());
     }
 
     @Override
@@ -131,6 +134,6 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     @Override
     public int hashCode()
     {
-        return (31 + clazz.hashCode()) * 31 + level;
+        return Objects.hash(this.clazz, this.level);
     }
 }

@@ -73,7 +73,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     {
         Ability ability = entry.newInstance(this);
 
-        boolean isUnlocked = this.getAbility(ability.getClass()) != null && this.playerAbilities.add(ability);
+        boolean isUnlocked = this.getAbility(ability.getClass()) == null && this.playerAbilities.add(ability);
         if (isUnlocked)
         {
             if (MinecraftForge.EVENT_BUS.post(new AbilityEvents.OnAbilityUnlockedEvent(ability)))

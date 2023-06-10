@@ -1,5 +1,6 @@
 package com.ormoyo.ormoyoutil.network;
 
+import com.google.common.collect.Lists;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
@@ -14,6 +15,7 @@ import net.minecraftforge.fml.network.NetworkEvent;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,14 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
     private static final BiConsumer<PlayerEntity, Collection<Ability>> setAbilities;
     private final Collection<AbilityEntry> entries;
 
+    public MessageSetAbilities(PlayerEntity player, Collection<AbilityEntry> entries)
+    {
+        this.entries = entries;
+
+        Collection<Ability> abilities = entries.stream().map(entry -> entry.newInstance((IAbilityHolder) player)).collect(Collectors.toList());
+        setAbilities.accept(player, abilities);
+    }
+
     public MessageSetAbilities(Collection<AbilityEntry> entries)
     {
         this.entries = entries;
@@ -32,8 +42,8 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
     @Override
     public void encode(PacketBuffer buffer)
     {
-        buffer.writeInt(entries.size());
-        for (AbilityEntry entry : entries)
+        buffer.writeInt(this.entries.size());
+        for (AbilityEntry entry : this.entries)
             buffer.writeRegistryId(entry);
     }
 
@@ -41,7 +51,7 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
     public static MessageSetAbilities decode(PacketBuffer buffer)
     {
         int capacity = buffer.readInt();
-        ArrayList<AbilityEntry> entries = new ArrayList<>(capacity);
+        Collection<AbilityEntry> entries = new ArrayList<>(capacity);
 
         for (int i = 0; i < capacity; i++)
             entries.add(buffer.readRegistryId());

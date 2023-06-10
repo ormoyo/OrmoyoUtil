@@ -9,7 +9,6 @@ import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.client.RenderHelper;
 import com.ormoyo.ormoyoutil.event.FontRenderEvent;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
-import com.ormoyo.ormoyoutil.util.vector.Vec4d;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
@@ -18,6 +17,8 @@ import net.minecraft.client.renderer.texture.NativeImage;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.vector.Vector4f;
 import net.minecraftforge.common.MinecraftForge;
 import org.apache.commons.lang3.ArrayUtils;
 import org.lwjgl.opengl.GL11;
@@ -32,12 +33,12 @@ public class FontHelper
     private static final int fontSizeMult = 8;
     static final Map<ResourceLocation, FontInfo> fontInfo = new NonNullMap<>(FontInfo::new);
 
-    public static void drawString(Font font, String text, double x, double y, double scale, Color color)
+    public static void drawString(Font font, String text, float x, float y, float scale, Color color)
     {
         FontHelper.drawString(font, text, x, y, scale, color.getRGB());
     }
 
-    public static void drawString(Font font, String text, double x, double y, double scale, int color)
+    public static void drawString(Font font, String text, float x, float y, float scale, int color)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
         Multimap<ResourceLocation, TexturedRect> batches = HashMultimap.create();
@@ -48,8 +49,8 @@ public class FontHelper
         text = event.getText();
         font = event.getFont();
 
-        double yoff = FontHelper.getWordLowestYoffset(font, text);
-        double cursorX = 0;
+        float yoff = FontHelper.getWordLowestYoffset(font, text);
+        float cursorX = 0;
 
         for (char character : text.toCharArray())
         {
@@ -65,10 +66,10 @@ public class FontHelper
 
             ResourceLocation location = info.blockTextures.getOrDefault(blockName, TextureManager.RESOURCE_LOCATION_EMPTY);
 
-            double w = (double) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5 : 1);
-            double h = (double) glyph.height / font.getResolution() * fontSizeMult;
+            float w = (float) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5f : 1f);
+            float h = (float) glyph.height / font.getResolution() * fontSizeMult;
 
-            double hoff = ((double) glyph.yoffset / font.getResolution() * fontSizeMult);
+            float hoff = ((float) glyph.yoffset / font.getResolution() * fontSizeMult);
 
             RenderHelper.setupBlend();
             if (location == TextureManager.RESOURCE_LOCATION_EMPTY)
@@ -83,7 +84,7 @@ public class FontHelper
                 info.blockTextures.put(blockName, location);
             }
 
-            batches.put(location, new TexturedRect(new Vec4d(x + cursorX, y + hoff * scale - yoff, w, h), convertShortsToLong(glyph.x, glyph.y, glyph.width, glyph.height)));
+            batches.put(location, new TexturedRect(convertFloatsToLong(x + cursorX, y + hoff * scale - yoff), convertFloatsToLong(w, h), convertShortsToLong(glyph.x, glyph.y, glyph.width, glyph.height)));
             cursorX += (w + glyph.xoffset) * scale;
         }
 
@@ -108,8 +109,15 @@ public class FontHelper
             bb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
             for (TexturedRect rect : rects)
             {
-                Vec4d pos = rect.position;
+                long pos = rect.pos;
+
+                long size = rect.size;
                 long tex = rect.texCord;
+
+                float posX = Float.intBitsToFloat((int)(pos >> 32));
+                float posY = Float.intBitsToFloat((int)pos);
+                float sizeX = Float.intBitsToFloat((int)(size >> 32));
+                float sizeY = Float.intBitsToFloat((int)size);
 
                 short texX = (short) (tex >> 0);
                 short texY = (short) (tex >> 16);
@@ -121,32 +129,32 @@ public class FontHelper
                 float minV = (float) texY / imageHeight;
                 float maxV = (float) (texY + texHeight) / imageHeight;
 
-                bb.pos(pos.x + scale * pos.z, pos.y + scale * pos.w, 0).color(red, green, blue, alpha).tex(maxU, maxV).endVertex();
-                bb.pos(pos.x + scale * pos.z, pos.y, 0).color(red, green, blue, alpha).tex(maxU, minV).endVertex();
-                bb.pos(pos.x, pos.y, 0).color(red, green, blue, alpha).tex(minU, minV).endVertex();
-                bb.pos(pos.x, pos.y + scale * pos.w, 0).color(red, green, blue, alpha).tex(minU, maxV).endVertex();
+                bb.pos(posX + scale * sizeX, posY + scale * sizeY, 0).color(red, green, blue, alpha).tex(maxU, maxV).endVertex();
+                bb.pos(posX + scale * sizeX, posY, 0).color(red, green, blue, alpha).tex(maxU, minV).endVertex();
+                bb.pos(posX, posY, 0).color(red, green, blue, alpha).tex(minU, minV).endVertex();
+                bb.pos(posX, posY + scale * sizeY, 0).color(red, green, blue, alpha).tex(minU, maxV).endVertex();
             }
             tess.draw();
         }
         MinecraftForge.EVENT_BUS.post(new FontRenderEvent.Post(text, font));
     }
 
-    public static void drawString(Font font, String text, double x, double y, double scale, Color color, double lineWidth)
+    public static void drawString(Font font, String text, float x, float y, float scale, Color color, float lineWidth)
     {
         FontHelper.drawString(font, text, x, y, scale, color.getRGB(), lineWidth, TextAlignment.LEFT);
     }
 
-    public static void drawString(Font font, String text, double x, double y, double scale, int color, double lineWidth)
+    public static void drawString(Font font, String text, float x, float y, float scale, int color, float lineWidth)
     {
         FontHelper.drawString(font, text, x, y, scale, color, lineWidth, TextAlignment.LEFT);
     }
 
-    public static void drawString(Font font, String text, double x, double y, double scale, Color color, double lineWidth, TextAlignment alignment)
+    public static void drawString(Font font, String text, float x, float y, float scale, Color color, float lineWidth, TextAlignment alignment)
     {
         FontHelper.drawString(font, text, x, y, scale, color.getRGB(), lineWidth, alignment);
     }
 
-    public static void drawString(Font font, String text, double x, double y, double scale, int color, double lineWidth, TextAlignment alignment)
+    public static void drawString(Font font, String text, float x, float y, float scale, int color, float lineWidth, TextAlignment alignment)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
         Multimap<ResourceLocation, TexturedRect> batches = HashMultimap.create();
@@ -157,10 +165,10 @@ public class FontHelper
         text = event.getText();
         font = event.getFont();
 
-        double yoff = FontHelper.getWordLowestYoffset(font, text);
+        float yoff = FontHelper.getWordLowestYoffset(font, text);
 
-        double cursorX = 0;
-        double cursorY = 0;
+        float cursorX = 0;
+        float cursorY = 0;
 
         RenderHelper.setupBlend();
 
@@ -182,7 +190,7 @@ public class FontHelper
                     break;
             }
 
-            double height = 0;
+            float height = 0;
             for (char character : line.toCharArray())
             {
                 Glyph glyph = info.glyphs.get(character);
@@ -197,10 +205,10 @@ public class FontHelper
 
                 ResourceLocation location = info.blockTextures.getOrDefault(blockName, TextureManager.RESOURCE_LOCATION_EMPTY);
 
-                double w = (double) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5 : 1);
-                double h = (double) glyph.height / font.getResolution() * fontSizeMult;
+                float w = (float) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5f : 1f);
+                float h = (float) glyph.height / font.getResolution() * fontSizeMult;
 
-                double hoff = (double) glyph.yoffset / font.getResolution() * fontSizeMult;
+                float hoff = (float) glyph.yoffset / font.getResolution() * fontSizeMult;
 
                 if (location == TextureManager.RESOURCE_LOCATION_EMPTY)
                 {
@@ -214,7 +222,7 @@ public class FontHelper
                     }
                 }
 
-                batches.put(location, new TexturedRect(new Vec4d(x + cursorX, y + (hoff - yoff) * scale + cursorY, w, h), convertShortsToLong(glyph.x, glyph.y, glyph.width, glyph.height)));
+                batches.put(location, new TexturedRect(convertFloatsToLong(x + cursorX, y + (hoff - yoff) * scale + cursorY), convertFloatsToLong(w, h), convertShortsToLong(glyph.x, glyph.y, glyph.width, glyph.height)));
                 cursorX += (w + glyph.xoffset) * scale;
 
                 if (character == ' ') continue;
@@ -245,8 +253,15 @@ public class FontHelper
             bb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX);
             for (TexturedRect rect : rects)
             {
-                Vec4d pos = rect.position;
+                long pos = rect.pos;
+
+                long size = rect.size;
                 long tex = rect.texCord;
+
+                float posX = Float.intBitsToFloat((int)(pos >> 32));
+                float posY = Float.intBitsToFloat((int)pos);
+                float sizeX = Float.intBitsToFloat((int)(size >> 32));
+                float sizeY = Float.intBitsToFloat((int)size);
 
                 short texX = (short) (tex >> 0);
                 short texY = (short) (tex >> 16);
@@ -258,21 +273,21 @@ public class FontHelper
                 float minV = (float) texY / imageHeight;
                 float maxV = (float) (texY + texHeight) / imageHeight;
 
-                bb.pos(pos.x + scale * pos.z, pos.y + scale * pos.w, 0).color(red, green, blue, alpha).tex(maxU, maxV).endVertex();
-                bb.pos(pos.x + scale * pos.z, pos.y, 0).color(red, green, blue, alpha).tex(maxU, minV).endVertex();
-                bb.pos(pos.x, pos.y, 0).color(red, green, blue, alpha).tex(minU, minV).endVertex();
-                bb.pos(pos.x, pos.y + scale * pos.w, 0).color(red, green, blue, alpha).tex(minU, maxV).endVertex();
+                bb.pos(posX + scale * sizeX, posY + scale * sizeY, 0).color(red, green, blue, alpha).tex(maxU, maxV).endVertex();
+                bb.pos(posX + scale * sizeX, posY, 0).color(red, green, blue, alpha).tex(maxU, minV).endVertex();
+                bb.pos(posX, posY, 0).color(red, green, blue, alpha).tex(minU, minV).endVertex();
+                bb.pos(posX, posY + scale * sizeY, 0).color(red, green, blue, alpha).tex(minU, maxV).endVertex();
             }
             tess.draw();
         }
         MinecraftForge.EVENT_BUS.post(new FontRenderEvent.Post(text, font));
     }
 
-    public static double getStringWidth(Font font, String text)
+    public static float getStringWidth(Font font, String text)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
 
-        double width = 0;
+        float width = 0;
         for (int i = 0; i < text.length(); i++)
         {
             char character = text.charAt(i);
@@ -283,18 +298,19 @@ public class FontHelper
                 return 0;
             }
 
-            double w = (double) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5 : 1);
+            float w = (float) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5f : 1f);
             width += i == 0 ? w : w + glyph.xoffset;
         }
+
         return width;
     }
 
-    public static double getStringHeight(Font font, String text)
+    public static float getStringHeight(Font font, String text)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
-        double yoff = getWordLowestYoffset(font, text);
+        float yoff = FontHelper.getWordLowestYoffset(font, text);
 
-        double height = 0;
+        float height = 0;
         for (char character : text.toCharArray())
         {
             Glyph glyph = info.glyphs.get(character);
@@ -304,10 +320,11 @@ public class FontHelper
                 return 0;
             }
 
-            if (glyph.ch == ' ') continue;
+            if (glyph.ch == ' ')
+                continue;
 
-            double h = (double) glyph.height / font.getResolution() * fontSizeMult;
-            double ho = (double) glyph.yoffset / font.getResolution() * fontSizeMult;
+            float h = (float) glyph.height / font.getResolution() * fontSizeMult;
+            float ho = (float) glyph.yoffset / font.getResolution() * fontSizeMult;
 
             height = Math.max(height, h + ho - yoff);
         }
@@ -315,25 +332,25 @@ public class FontHelper
         return height;
     }
 
-    public static double getStringWidth(Font font, String text, double lineWidth)
+    public static float getStringWidth(Font font, String text, float lineWidth)
     {
         String[] lines = getLinesForFont(font, text, 1, lineWidth);
-        double longestLine = 0;
+        float longestLine = 0;
 
         for (String line : lines)
         {
-            double w = FontHelper.getStringWidth(font, line);
+            float w = FontHelper.getStringWidth(font, line);
             longestLine = Math.min(longestLine, w);
         }
 
         return Math.min(longestLine, lineWidth);
     }
 
-    public static double getStringHeight(Font font, String text, double lineWidth)
+    public static double getStringHeight(Font font, String text, float lineWidth)
     {
         String[] lines = getLinesForFont(font, text, 1, lineWidth);
 
-        double height = 0;
+        float height = 0;
         for (int i = 0; i < lines.length; i++)
         {
             String line = lines[i];
@@ -343,11 +360,11 @@ public class FontHelper
         return height;
     }
 
-    public static double getStringHeight(Font font, String text, double scale, double lineWidth)
+    public static float getStringHeight(Font font, String text, float scale, float lineWidth)
     {
         String[] lines = getLinesForFont(font, text, scale, lineWidth);
 
-        double height = 0;
+        float height = 0;
         for (int i = 0; i < lines.length; i++)
         {
             String line = lines[i];
@@ -357,27 +374,27 @@ public class FontHelper
         return height * scale;
     }
 
-    public static double getCharWidth(Font font, char character)
+    public static float getCharWidth(Font font, char character)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
         Glyph glyph = info.glyphs.get(character);
 
-        return (double) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5 : 1);
+        return (float) glyph.width / font.getResolution() * fontSizeMult * (character == ' ' ? 0.5f : 1f);
     }
 
-    public static double getCharHeight(Font font, char character)
+    public static float getCharHeight(Font font, char character)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
         Glyph glyph = info.glyphs.get(character);
 
-        return (double) glyph.height / font.getResolution() * fontSizeMult;
+        return (float) glyph.height / font.getResolution() * fontSizeMult;
     }
 
-    private static double getWordLowestYoffset(Font font, String text)
+    private static float getWordLowestYoffset(Font font, String text)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
 
-        double height = Integer.MAX_VALUE;
+        float height = Integer.MAX_VALUE;
         for (char character : text.toCharArray())
         {
             Glyph glyph = info.glyphs.get(character);
@@ -388,13 +405,13 @@ public class FontHelper
             }
 
             if (glyph.ch == ' ') continue;
-            height = Math.min(height, (double) glyph.yoffset / font.getResolution() * fontSizeMult);
+            height = Math.min(height, (float) glyph.yoffset / font.getResolution() * fontSizeMult);
         }
 
         return height;
     }
 
-    private static String[] getLinesForFont(Font font, String text, double scale, double lineWidth)
+    private static String[] getLinesForFont(Font font, String text, float scale, float lineWidth)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
         Glyph whitespace = info.glyphs.get(' ');
@@ -405,7 +422,7 @@ public class FontHelper
             return new String[0];
         }
 
-        double whitespaceWidth = whitespace.width * 0.5 * scale;
+        float whitespaceWidth = whitespace.width * 0.5f * scale;
 
         int cursorX = 0;
         int currentLineStartIndex = 0;
@@ -433,7 +450,7 @@ public class FontHelper
                     continue;
                 }
 
-                double width = (double) glyph.width / font.getResolution() * fontSizeMult;
+                float width = (float) glyph.width / font.getResolution() * fontSizeMult;
                 cursorX += (ch == chars.length - 1 ? width : width + glyph.xoffset) * scale;
 
                 if (cursorX > lineWidth)
@@ -453,6 +470,21 @@ public class FontHelper
         return new String(formattedText).split("\n");
     }
 
+    private static ResourceLocation getDynamicImplTextureLocation(String name, DynamicTextureImpl texture)
+    {
+        return Minecraft.getInstance().getTextureManager().getDynamicTextureLocation(name, texture);
+    }
+
+    private static long convertFloatsToLong(float a, float b)
+    {
+        return (((long)Float.floatToIntBits(a)) << 32) | (Float.floatToIntBits(b) & 0xffffffffL);
+    }
+
+    private static long convertShortsToLong(int a, int b, int c, int d)
+    {
+        return (a & 0xFFFFL) | ((b & 0xFFFFL) << 16) | ((c & 0xFFFFL) << 32) | ((d & 0xFFFFL) << 48);
+    }
+
     public enum TextAlignment
     {
         LEFT,
@@ -467,11 +499,11 @@ public class FontHelper
         final int y;
         final int width;
         final int height;
-        final double xoffset;
+        final int xoffset;
         final int yoffset;
         final int heightoffset;
 
-        Glyph(char ch, int x, int y, int width, int height, double xoffset, int yoffset, int heightoffset)
+        Glyph(char ch, int x, int y, int width, int height, int xoffset, int yoffset, int heightoffset)
         {
             this.ch = ch;
             this.x = x;
@@ -506,16 +538,6 @@ public class FontHelper
         Map<String, ResourceLocation> blockTextures = Maps.newHashMap();
     }
 
-    private static ResourceLocation getDynamicImplTextureLocation(String name, DynamicTextureImpl texture)
-    {
-        return Minecraft.getInstance().getTextureManager().getDynamicTextureLocation(name, texture);
-    }
-
-    private static long convertShortsToLong(int a, int b, int c, int d)
-    {
-        return (a & 0xFFFFL) | ((b & 0xFFFFL) << 16) | ((c & 0xFFFFL) << 32) | ((d & 0xFFFFL) << 48);
-    }
-
     private static class DynamicTextureImpl extends DynamicTexture
     {
         private final boolean antiAliasing;
@@ -541,12 +563,15 @@ public class FontHelper
 
     private static class TexturedRect
     {
-        private final Vec4d position;
+        private final long pos;
+        private final long size;
+
         private final long texCord;
 
-        public TexturedRect(Vec4d pos, long tex)
+        private TexturedRect(long pos, long size, long tex)
         {
-            this.position = pos;
+            this.pos = pos;
+            this.size = size;
             this.texCord = tex;
         }
     }

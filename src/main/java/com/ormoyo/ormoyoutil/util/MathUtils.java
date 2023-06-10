@@ -60,4 +60,19 @@ public class MathUtils
     {
         return lerp(min, max, random.nextDouble());
     }
+
+    public static double map(double value, double min1, double max1, double min2, double max2)
+    {
+        return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+    }
+
+    public static float map(float value, float min1, float max1, float min2, float max2)
+    {
+        return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+    }
+
+    public static int map(int value, int min1, int max1, int min2, int max2)
+    {
+        return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+    }
 }

@@ -6,6 +6,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.NetworkEvent;
@@ -19,6 +20,7 @@ import java.util.function.Supplier;
  *
  * @param <T> The message type (You can just use the class itself)
  */
+@SuppressWarnings("unchecked")
 public abstract class AbstractMessage<T extends AbstractMessage<T>>
 {
 
@@ -39,7 +41,7 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
     @NetworkDecoder(MessageTest.class)
     public static <T extends AbstractMessage<T>> T decode(PacketBuffer buffer)
     {
-        return null;
+        return (T) new MessageTest("test");
     }
 
     /**
@@ -72,16 +74,24 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
         };
 
         DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> serverAction::execute);
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-        {
-            if (EffectiveSide.get().isServer())
-            {
-                serverAction.execute();
-                return;
-            }
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> () -> onClientMessage(message, context));
+    }
 
-            context.enqueueWork(() -> message.onClientReceived(Minecraft.getInstance().player, context));
+    @OnlyIn(Dist.CLIENT)
+    private static <T extends AbstractMessage<T>> void onClientMessage(AbstractMessage<T> message, NetworkEvent.Context context)
+    {
+        if (message == null)
+            return;
+
+        if (EffectiveSide.get().isServer())
+        {
+            context.enqueueWork(() -> message.onServerReceived(context.getSender().getServer(), context.getSender(), context));
             context.setPacketHandled(true);
-        });
+
+            return;
+        }
+
+        context.enqueueWork(() -> message.onClientReceived(Minecraft.getInstance().player, context));
+        context.setPacketHandled(true);
     }
 }

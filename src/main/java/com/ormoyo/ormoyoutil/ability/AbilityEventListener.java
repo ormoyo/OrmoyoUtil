@@ -10,6 +10,7 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class AbilityEventListener implements IAbilityEventListener
     private final String readable;
     private java.lang.reflect.Type filter = null;
 
-    public AbilityEventListener(AbilityEntry target, Method method, Class<? extends Event> eventClass, IAbilityEventPredicate<? extends Event> predicate, boolean isGeneric) throws Exception
+    public AbilityEventListener(AbilityEntry target, Method method, Class<? extends Event> eventClass, IAbilityEventPredicate<? extends Event> predicate, boolean isGeneric) throws ReflectiveOperationException
     {
         this.handler = (IAbilityEventListener) createWrapper(method).getConstructor(ResourceLocation.class).newInstance(target.getRegistryName());
         this.subInfo = method.getAnnotation(SubscribeEvent.class);
