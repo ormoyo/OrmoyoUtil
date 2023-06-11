@@ -33,10 +33,10 @@ public class EntityUtils
         return EntityUtils.raytraceEntityFromEntity(entity, reachDistance, Entity.class);
     }
 
-    public static Entity raytraceEntityFromEntity(Entity entity, float reachDistance, Class<? extends Entity> entityClass)
+    public static<T extends Entity> T raytraceEntityFromEntity(Entity entity, float reachDistance, Class<T> entityClass)
     {
         Vector3d vec = EntityUtils.getLookedAtPoint(entity, reachDistance);
-        EntityRayResult<?> result = EntityUtils.raytraceEntities(entityClass, entity.world, new Vector3d(entity.getPosX(), entity.getPosY() + entity.getEyeHeight(), entity.getPosZ()), vec);
+        EntityRayResult<T> result = EntityUtils.raytraceEntities(entityClass, entity.world, new Vector3d(entity.getPosX(), entity.getPosY() + entity.getEyeHeight(), entity.getPosZ()), vec);
 
         if (result.entities.isEmpty())
             return null;
@@ -61,7 +61,7 @@ public class EntityUtils
 
     public static <T extends Entity> EntityRayResult<T> raytraceEntities(Class<T> entityClass, World world, RayTraceContext context)
     {
-        EntityRayResult<T> result = new EntityRayResult<T>();
+        EntityRayResult<T> result = new EntityRayResult<>();
         result.setBlockHit(world.rayTraceBlocks(context));
 
         double collidePosX;

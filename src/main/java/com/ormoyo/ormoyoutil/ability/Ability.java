@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
-import com.ormoyo.ormoyoutil.abilities.TestAbility;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
 import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
@@ -22,7 +21,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -37,9 +35,9 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IGenericEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -52,7 +50,6 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -217,7 +214,7 @@ public abstract class Ability
         return ABILITY_EVENT_REGISTRY;
     }
 
-    private static Map<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES = Maps.newHashMap();
+    private static final Map<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES = Maps.newHashMap();
     public static ITextComponent getAbilityDisplayName(Class<? extends Ability> clazz)
     {
         return ABILITY_DISPLAY_NAMES.get(clazz);
@@ -289,8 +286,8 @@ public abstract class Ability
 
             Collection<AbilityEntry> entries = Ability.getAbilityRegistry().getValues()
                     .stream()
-                    .filter(entry -> abilities.contains(entry) || (entry.getLevel() <= 0 &&
-                            (entry.getCondition() == null || entry.getConditionCheckingEvents().length > 0)))
+                    .filter(entry -> abilities.contains(entry) || (entry.getLevel() <= 1 &&
+                            (entry.getCondition() == null || entry.getConditionCheckingEvents().length == 0)))
                     .collect(Collectors.toSet());
 
             OrmoyoUtil.NETWORK_CHANNEL.send(
@@ -412,6 +409,12 @@ public abstract class Ability
     @EventBusSubscriber(modid = OrmoyoUtil.MODID, bus = EventBusSubscriber.Bus.MOD)
     private static class RegistryEventHandler
     {
+        @SubscribeEvent
+        public static void onCommonSetup(FMLCommonSetupEvent event)
+        {
+            CommonEventHandler.onInit();
+        }
+
         @SubscribeEvent
         public static void onNewRegistry(RegistryEvent.NewRegistry event)
         {

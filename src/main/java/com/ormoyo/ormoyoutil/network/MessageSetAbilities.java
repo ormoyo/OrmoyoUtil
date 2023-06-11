@@ -1,6 +1,5 @@
 package com.ormoyo.ormoyoutil.network;
 
-import com.google.common.collect.Lists;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
@@ -15,7 +14,6 @@ import net.minecraftforge.fml.network.NetworkEvent;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 

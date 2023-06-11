@@ -7,6 +7,7 @@ import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
 import com.ormoyo.ormoyoutil.client.OrmoyoResourcePackListener;
+import com.ormoyo.ormoyoutil.commands.AbilitiesCommand;
 import com.ormoyo.ormoyoutil.commands.AcquireAbilityCommand;
 import com.ormoyo.ormoyoutil.network.NetworkChannel;
 import com.ormoyo.ormoyoutil.network.NetworkHandler;
@@ -33,7 +34,6 @@ import net.minecraftforge.forgespi.language.ModFileScanData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -70,15 +70,6 @@ public class OrmoyoUtil
         for (ModFileScanData data : ModList.get().getAllScanData())
         {
             NetworkHandler.registerNetworkMessages(data);
-        }
-
-        try
-        {
-            Arrays.stream(Ability.class.getDeclaredClasses()).filter(clazz -> clazz.getSimpleName().equals("CommonEventHandler")).findAny().get().getMethod("onInit").invoke(null);
-        }
-        catch (ReflectiveOperationException e)
-        {
-            throw new RuntimeException(e);
         }
     }
 
@@ -124,6 +115,7 @@ public class OrmoyoUtil
     public void onRegisterCommands(RegisterCommandsEvent event)
     {
         AcquireAbilityCommand.register(event.getDispatcher());
+        AbilitiesCommand.register(event.getDispatcher());
     }
 
     public static class Config

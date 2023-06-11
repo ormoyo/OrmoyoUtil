@@ -15,14 +15,16 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     private static final Class<? extends Event>[] EMPTY_CLASS_ARRAY = new Class[0];
 
     Function<IAbilityHolder, ? extends Ability> abilityConstructor;
+
     private final Class<? extends Ability> clazz;
     private final Class<? extends Event>[] conditionCheckingEvents;
+
     private final Predicate<PlayerEntity> condition;
     private final int level;
 
     public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz)
     {
-        this(name, clazz, 1, null);
+        this(name, clazz, null);
     }
 
     public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, int level)
@@ -34,7 +36,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, Predicate<PlayerEntity> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this.clazz = clazz;
-        this.condition = condition != null ? condition : player -> false;
+        this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
         this.level = 0;
         this.setRegistryName(name);
@@ -44,15 +46,15 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, int level, Predicate<PlayerEntity> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this.clazz = clazz;
-        this.condition = condition != null ? condition : player -> false;
+        this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
-        this.level = Math.max(level, 1);
+        this.level = Math.max(level, 0);
         this.setRegistryName(name);
     }
 
     public AbilityEntry(String name, Class<? extends Ability> clazz)
     {
-        this(name, clazz, 1, null);
+        this(name, clazz, null);
     }
 
     public AbilityEntry(String name, Class<? extends Ability> clazz, int level)
@@ -76,7 +78,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
         this.clazz = clazz;
         this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
-        this.level = Math.max(level, 1);
+        this.level = Math.max(level, 0);
         this.setRegistryName(name);
     }
 

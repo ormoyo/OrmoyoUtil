@@ -1,16 +1,14 @@
 package com.ormoyo.ormoyoutil.network;
 
-import com.ormoyo.ormoyoutil.util.Action;
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Tuple;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.NetworkEvent;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -60,6 +58,11 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
      */
     public abstract void onServerReceived(MinecraftServer server, PlayerEntity player, NetworkEvent.Context messageContext);
 
+    private static Tuple<? extends AbstractMessage<?>, NetworkEvent.Context> contextTuple;
+    static Optional<Tuple<? extends AbstractMessage<?>, NetworkEvent.Context>> getContext()
+    {
+        return Optional.ofNullable(contextTuple);
+    }
 
     public static <T extends AbstractMessage<T>> void onMessage(AbstractMessage<T> message, Supplier<NetworkEvent.Context> ctx)
     {
@@ -67,31 +70,10 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
             return;
 
         NetworkEvent.Context context = ctx.get();
-        Action serverAction = () ->
-        {
-            context.enqueueWork(() -> message.onServerReceived(context.getSender().getServer(), context.getSender(), context));
-            context.setPacketHandled(true);
-        };
 
-        DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> serverAction::execute);
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> () -> onClientMessage(message, context));
-    }
+        contextTuple = new Tuple<>(message, context);
 
-    @OnlyIn(Dist.CLIENT)
-    private static <T extends AbstractMessage<T>> void onClientMessage(AbstractMessage<T> message, NetworkEvent.Context context)
-    {
-        if (message == null)
-            return;
-
-        if (EffectiveSide.get().isServer())
-        {
-            context.enqueueWork(() -> message.onServerReceived(context.getSender().getServer(), context.getSender(), context));
-            context.setPacketHandled(true);
-
-            return;
-        }
-
-        context.enqueueWork(() -> message.onClientReceived(Minecraft.getInstance().player, context));
-        context.setPacketHandled(true);
+        DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> MessageMethods::onServerMessage);
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> MessageMethods::onClientMessage);
     }
 }

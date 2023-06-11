@@ -30,7 +30,7 @@ public class AcquireAbilityCommand
                 .requires(commandSource -> commandSource.hasPermissionLevel(2))
                 .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("abilities", new AbilityParser())
-                                .executes(context -> acquireAbility(context.getSource(), context.getArgument("abilities", AbilityEntry.class))))
+                                .executes(context -> AcquireAbilityCommand.acquireAbility(context.getSource(), context.getArgument("abilities", AbilityEntry.class))))
                             )
                 );
     }
