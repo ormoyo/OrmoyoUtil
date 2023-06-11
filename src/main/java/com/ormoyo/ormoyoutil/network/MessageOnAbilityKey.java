@@ -35,7 +35,7 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
     public void encode(PacketBuffer buffer)
     {
         buffer.writeRegistryId(this.entry);
-        buffer.writeString(this.keybind);
+        buffer.writeString(this.keybind == null ? "" : this.keybind);
 
         buffer.writeBoolean(this.isPressed);
     }
@@ -47,6 +47,7 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
         String keybind = buffer.readString();
 
         boolean isPressed = buffer.readBoolean();
+        keybind = "".equals(keybind) ? null : keybind;
 
         return new MessageOnAbilityKey(entry, keybind, isPressed);
     }
