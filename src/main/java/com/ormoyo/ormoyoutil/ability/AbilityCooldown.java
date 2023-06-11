@@ -49,6 +49,9 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
 
     protected void setIsOnCooldown(String keybind, boolean isOnCooldown)
     {
+        if (this.getCooldown() <= 0)
+            return;
+
         if (!isOnCooldown)
             this.cooldownTicks.get(keybind).setValue(0);
 

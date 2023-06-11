@@ -73,7 +73,7 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
 
         contextTuple = new Tuple<>(message, context);
 
-        DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> MessageMethods::onServerMessage);
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> MessageMethods::onClientMessage);
+        DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> MessageMethods.ServerMethods::onServerMessage);
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> MessageMethods.ClientMethods::onClientMessage);
     }
 }
