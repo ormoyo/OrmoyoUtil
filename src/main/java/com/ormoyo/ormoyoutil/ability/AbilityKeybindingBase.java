@@ -12,6 +12,8 @@ import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import java.awt.event.KeyEvent;
+
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityKeybindingBase extends Ability
 {
@@ -115,6 +117,7 @@ public abstract class AbilityKeybindingBase extends Ability
 
     /**
      * @return The keycode of the ability to be activated with
+     * @see KeyEvent
      */
     public abstract int getKeyCode();
 

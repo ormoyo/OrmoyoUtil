@@ -7,6 +7,7 @@ import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
 import com.ormoyo.ormoyoutil.client.OrmoyoResourcePackListener;
+import com.ormoyo.ormoyoutil.commands.AbilitiesCommand;
 import com.ormoyo.ormoyoutil.commands.AcquireAbilityCommand;
 import com.ormoyo.ormoyoutil.network.NetworkChannel;
 import com.ormoyo.ormoyoutil.network.NetworkHandler;
@@ -33,7 +34,6 @@ import net.minecraftforge.forgespi.language.ModFileScanData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -71,15 +71,6 @@ public class OrmoyoUtil
         {
             NetworkHandler.registerNetworkMessages(data);
         }
-
-        try
-        {
-            Arrays.stream(Ability.class.getDeclaredClasses()).filter(clazz -> clazz.getSimpleName().equals("CommonEventHandler")).findAny().get().getMethod("onInit").invoke(null);
-        }
-        catch (ReflectiveOperationException e)
-        {
-            throw new RuntimeException(e);
-        }
     }
 
     private void doClientStuff(FMLClientSetupEvent event)
@@ -99,21 +90,20 @@ public class OrmoyoUtil
 
             for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
             {
-                Ability ability = entry.newInstance((IAbilityHolder) mc.player);
-                if (ability instanceof AbilityKeybindingBase)
+                if (AbilityKeybindingBase.class.isAssignableFrom(entry.getAbilityClass()))
                 {
-                    AbilityKeybindingBase keybindBase = (AbilityKeybindingBase) ability;
-                    if (keybindBase.getKeyCode() <= 0 || keybindBase.getKeyType() == null)
+                    AbilityKeybindingBase ability = (AbilityKeybindingBase) entry.newInstance((IAbilityHolder) mc.player);
+                    if (ability.getKeyCode() <= 0 || ability.getKeyType() == null)
                         continue;
 
                     ResourceLocation location = ability.getRegistryName();
                     ClientRegistry.registerKeyBinding(
                             new KeyBinding(
                                     "key." + location.getNamespace() + "." + location.getPath(),
-                                    keybindBase.getKeyConflictContext(),
-                                    keybindBase.getKeyModifier(),
-                                    keybindBase.getKeyType(),
-                                    keybindBase.getKeyCode(),
+                                    ability.getKeyConflictContext(),
+                                    ability.getKeyModifier(),
+                                    ability.getKeyType(),
+                                    ability.getKeyCode(),
                                     "key." + location.getNamespace() + ".category"));
                 }
             }
@@ -124,6 +114,7 @@ public class OrmoyoUtil
     public void onRegisterCommands(RegisterCommandsEvent event)
     {
         AcquireAbilityCommand.register(event.getDispatcher());
+        AbilitiesCommand.register(event.getDispatcher());
     }
 
     public static class Config
