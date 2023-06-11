@@ -10,6 +10,7 @@ import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
 import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
 import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
@@ -342,7 +343,7 @@ public abstract class Ability
     }
 
     @EventBusSubscriber(modid = OrmoyoUtil.MODID, value = Dist.CLIENT)
-    private static class ClientEventHandler
+    static class ClientEventHandler
     {
         @SuppressWarnings("unchecked")
         @SubscribeEvent
@@ -391,6 +392,22 @@ public abstract class Ability
                     }
                 }
             }
+        }
+
+        static AbilityKeybindingBase currentConstruct;
+        public static void onKeybindBaseConstruct()
+        {
+            if (currentConstruct == null)
+                return;
+
+            KeyBinding[] keybinds = currentConstruct.getKeybinds();
+            KeyBinding key = currentConstruct.getKey();
+
+            if(keybinds == null && key != null)
+                keybinds = new KeyBinding[] { key };
+
+            currentConstruct.keybinds = keybinds;
+            currentConstruct = null;
         }
     }
 
@@ -448,8 +465,8 @@ public abstract class Ability
             register(event, GuiOpenEvent.class, EventPredicates.GUI_OPEN_EVENT);
         }
 
-        @OnlyIn(Dist.CLIENT)
         @SubscribeEvent
+        @OnlyIn(Dist.CLIENT)
         public static void registerAbilityEventPredicatesOnClient(RegistryEvent.Register<AbilityEventEntry> event)
         {
             register(event, GuiScreenEvent.class, (ability, player) -> true);

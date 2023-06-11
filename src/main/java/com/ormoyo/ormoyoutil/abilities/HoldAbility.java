@@ -4,6 +4,8 @@ import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
 import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import java.util.Map;
@@ -21,6 +23,7 @@ public abstract class HoldAbility extends AbilityCooldown
     public abstract boolean hold(String keybind);
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void onUpdate()
     {
         super.onUpdate();
@@ -62,6 +65,7 @@ public abstract class HoldAbility extends AbilityCooldown
         this.isHolding.get(keybind).setValue(isHolding);
     }
 
+    @SuppressWarnings("SameParameterValue")
     protected boolean isHolding(String keybind)
     {
         return this.isHolding.get(keybind).booleanValue();

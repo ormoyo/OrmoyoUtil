@@ -5,7 +5,6 @@ import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
 
 public class TestAbility extends Ability
 {
-
     public TestAbility(IAbilityHolder owner)
     {
         super(owner);

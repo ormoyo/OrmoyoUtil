@@ -2,6 +2,8 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -19,6 +21,7 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     }
 
     @Override
+    @OnlyIn(Dist.CLIENT)
     public void onUpdate()
     {
         for (KeyBinding keybind : this.getKeybinds())
