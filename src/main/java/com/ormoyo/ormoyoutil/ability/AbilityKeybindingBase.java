@@ -62,7 +62,7 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @param keybind The pressed keybind description. If you are using {@link #getKeyCode()} you don't have to worry about this.
+     * @param keybind The pressed keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
      */
     public void onKeyPress(@Nullable String keybind)
     {
@@ -73,7 +73,7 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @param keybind The pressed keybind description. If you are using {@link #getKeyCode()} you don't have to worry about this.
+     * @param keybind The pressed keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
      */
     public void onKeyRelease(@Nullable String keybind)
     {
@@ -151,6 +151,9 @@ public abstract class AbilityKeybindingBase extends Ability
                 keybind.getKeyDescription();
     }
 
+    /**
+     * If you need to use multiple keybindings.
+     */
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeybinds()
     {

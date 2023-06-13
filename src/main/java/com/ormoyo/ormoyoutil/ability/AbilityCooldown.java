@@ -7,6 +7,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -32,13 +33,13 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
             if (!isOnCooldown.booleanValue())
             {
                 super.onUpdate();
-                return;
+                continue;
             }
 
             MutableInt cooldownTick = this.cooldownTicks.get(keyName);
 
             cooldownTick.increment();
-            cooldownTick.setValue(cooldownTick.intValue() % this.getCooldown());
+            cooldownTick.setValue(cooldownTick.intValue() % (this.getCooldown(keybind.getKeyDescription()) + 1));
 
             if (cooldownTick.intValue() == 0)
             {
@@ -47,9 +48,15 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
         }
     }
 
-    protected void setIsOnCooldown(String keybind, boolean isOnCooldown)
+    /**
+     * @param keybind The keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
+     * @return The specific cooldown in ticks for the keybind
+     */
+    public abstract int getCooldown(@Nullable String keybind);
+
+    protected void setIsOnCooldown(@Nullable String keybind, boolean isOnCooldown)
     {
-        if (this.getCooldown() <= 0)
+        if (this.getCooldown(keybind) <= 0)
             return;
 
         if (!isOnCooldown)
@@ -67,6 +74,4 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     {
         return this.isOnCooldown(null);
     }
-
-    public abstract int getCooldown();
 }
