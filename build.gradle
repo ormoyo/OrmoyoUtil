@@ -16,7 +16,7 @@ plugins {
 apply plugin: 'org.spongepowered.mixin'
 
 group = 'com.ormoyo'
-version = '1.16.5-0.4.35'
+version = '1.16.5-0.4.37'
 
 java {
     archivesBaseName = 'ormoyoutil'
