@@ -12,8 +12,6 @@ public abstract class ActionAbility extends AbilityCooldown
 
     public abstract boolean action(String keybind);
 
-    public abstract int getCooldown();
-
     @Override
     public void onKeyPress(String keybind)
     {

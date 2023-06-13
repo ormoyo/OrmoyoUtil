@@ -18,7 +18,6 @@ public abstract class ToggleAbility extends AbilityCooldown
     }
 
     public abstract boolean toggle(String keybind);
-
     public abstract boolean untoggle(String keybind);
 
     @Override
