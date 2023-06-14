@@ -43,12 +43,14 @@ import net.minecraftforge.fml.server.ServerLifecycleHooks;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import java.lang.invoke.LambdaConversionException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -400,9 +402,17 @@ public abstract class Ability
             if (currentConstruct == null)
                 return;
 
-            KeyBinding[] keybinds = currentConstruct.getKeybinds();
-            if(keybinds == null)
-                currentConstruct.mainKeybind = currentConstruct.getKeybind();
+            for (KeyBinding keybind : currentConstruct.getKeybinds())
+            {
+                KeyBinding key = currentConstruct.getKeybind();
+                if (key != null && Objects.equals(key.getKeyDescription(), keybind.getKeyDescription()))
+                {
+                    currentConstruct.hasBeenPressed.put(null, new MutableBoolean());
+                    continue;
+                }
+
+                currentConstruct.hasBeenPressed.put(keybind.getKeyDescription(), new MutableBoolean());
+            }
 
             currentConstruct = null;
         }

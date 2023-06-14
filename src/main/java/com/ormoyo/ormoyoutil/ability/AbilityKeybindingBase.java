@@ -25,10 +25,10 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityKeybindingBase extends Ability
 {
-    private final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
+    final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
 
     @OnlyIn(Dist.CLIENT)
-    KeyBinding mainKeybind;
+    private KeyBinding mainKeybind;
 
     public AbilityKeybindingBase(IAbilityHolder owner)
     {
@@ -167,6 +167,10 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeybinds()
     {
+        KeyBinding key = this.getKeybind();
+        if (key == null)
+            return new KeyBinding[0];
+
         return new KeyBinding[] {this.getKeybind()};
     }
 }
