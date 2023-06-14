@@ -79,7 +79,7 @@ public abstract class Ability
     /**
      * Called every tick
      */
-    public void onUpdate()
+    public void tick()
     {
     }
 
@@ -401,12 +401,9 @@ public abstract class Ability
                 return;
 
             KeyBinding[] keybinds = currentConstruct.getKeybinds();
-            KeyBinding key = currentConstruct.getKey();
+            if(keybinds == null)
+                currentConstruct.mainKeybind = currentConstruct.getKeybind();
 
-            if(keybinds == null && key != null)
-                keybinds = new KeyBinding[] { key };
-
-            currentConstruct.keybinds = keybinds;
             currentConstruct = null;
         }
     }
@@ -461,6 +458,7 @@ public abstract class Ability
             register(event, EntityViewRenderEvent.class, EventPredicates.ENTITY_VIEW_RENDER_EVENT);
             register(event, InputEvent.class, EventPredicates.INPUT_EVENT);
             register(event, RenderHandEvent.class, EventPredicates.RENDER_HAND_EVENT);
+            register(event, RenderArmEvent.class, EventPredicates.RENDER_ARM_EVENT);
             register(event, ClientPlayerNetworkEvent.class, EventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
             register(event, GuiOpenEvent.class, EventPredicates.GUI_OPEN_EVENT);
         }
@@ -491,6 +489,7 @@ public abstract class Ability
                     name.append("_").append(Character.toLowerCase(c));
                 }
             }
+
             event.getRegistry().register(new AbilityEventEntry(new ResourceLocation(OrmoyoUtil.MODID, name.toString()), clazz, predicate));
         }
 
@@ -557,6 +556,11 @@ public abstract class Ability
 
             public static final IAbilityEventPredicate<RenderHandEvent>
                     RENDER_HAND_EVENT =
+                    (ability, event) ->
+                            true;
+
+            public static final IAbilityEventPredicate<RenderArmEvent>
+                    RENDER_ARM_EVENT =
                     (ability, event) ->
                             true;
 

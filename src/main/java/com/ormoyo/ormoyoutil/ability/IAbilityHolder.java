@@ -9,9 +9,8 @@ public interface IAbilityHolder
 {
     Collection<Ability> getAbilities();
 
-    Ability getAbility(ResourceLocation resourceLocation);
-
-    Ability getAbility(Class<? extends Ability> clazz);
+    <T extends Ability> T getAbility(ResourceLocation resourceLocation);
+    <T extends Ability> T getAbility(Class<T> clazz);
 
     boolean unlockAbility(AbilityEntry entry);
 

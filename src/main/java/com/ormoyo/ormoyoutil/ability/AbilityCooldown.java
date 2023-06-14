@@ -1,9 +1,6 @@
 package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.util.NonNullMap;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -22,24 +19,22 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void onUpdate()
+    public void tick()
     {
-        for (KeyBinding keybind : this.getKeybinds())
+        for (String keybind : this.getKeys())
         {
-            String keyName = this.getKeybindName(keybind);
-            MutableBoolean isOnCooldown = this.isOnCooldown.get(keyName);
+            MutableBoolean isOnCooldown = this.isOnCooldown.get(keybind);
 
             if (!isOnCooldown.booleanValue())
             {
-                super.onUpdate();
+                super.tick();
                 continue;
             }
 
-            MutableInt cooldownTick = this.cooldownTicks.get(keyName);
+            MutableInt cooldownTick = this.cooldownTicks.get(keybind);
 
             cooldownTick.increment();
-            cooldownTick.setValue(cooldownTick.intValue() % (this.getCooldown(keybind.getKeyDescription()) + 1));
+            cooldownTick.setValue(cooldownTick.intValue() % (this.getCooldown(keybind) + 1));
 
             if (cooldownTick.intValue() == 0)
             {

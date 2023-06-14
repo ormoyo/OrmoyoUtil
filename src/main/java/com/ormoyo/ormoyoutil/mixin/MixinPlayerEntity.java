@@ -1,5 +1,6 @@
 package com.ormoyo.ormoyoutil.mixin;
 
+import com.google.common.collect.Sets;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
@@ -29,7 +30,7 @@ import java.util.*;
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity extends LivingEntity implements IAbilityHolder
 {
-    protected final Collection<Ability> playerAbilities = new HashSet<>();
+    protected final Set<Ability> playerAbilities = Sets.newHashSet();
 
     protected MixinPlayerEntity(World world)
     {
@@ -39,30 +40,32 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     @Override
     public Collection<Ability> getAbilities()
     {
-        return Collections.unmodifiableCollection(this.playerAbilities);
+        return Collections.unmodifiableSet(this.playerAbilities);
     }
 
     @Override
-    public Ability getAbility(ResourceLocation resourceLocation)
+    @SuppressWarnings("unchecked")
+    public<T extends Ability> T getAbility(ResourceLocation resourceLocation)
     {
         for (Ability ability : this.playerAbilities)
         {
             if (Objects.equals(ability.getEntry().getRegistryName(), resourceLocation))
             {
-                return ability;
+                return (T) ability;
             }
         }
         return null;
     }
 
     @Override
-    public Ability getAbility(Class<? extends Ability> clazz)
+    @SuppressWarnings("unchecked")
+    public<T extends Ability> T getAbility(Class<T> clazz)
     {
         for (Ability ability : this.playerAbilities)
         {
             if (ability.getClass() == clazz)
             {
-                return ability;
+                return (T) ability;
             }
         }
         return null;
@@ -88,7 +91,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
         return isUnlocked;
     }
 
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/fml/hooks/BasicEventHooks;onPlayerPostTick(Lnet/minecraft/entity/player/PlayerEntity;)V"))
     protected void onTick(CallbackInfo info)
     {
         for (Ability ability : this.playerAbilities)
@@ -96,7 +99,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
             if (!ability.isEnabled())
                 continue;
 
-            ability.onUpdate();
+            ability.tick();
         }
     }
 

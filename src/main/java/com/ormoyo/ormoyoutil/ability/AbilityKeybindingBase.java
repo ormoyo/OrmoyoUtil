@@ -18,6 +18,8 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import javax.annotation.Nullable;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
@@ -26,7 +28,7 @@ public abstract class AbilityKeybindingBase extends Ability
     private final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
 
     @OnlyIn(Dist.CLIENT)
-    KeyBinding[] keybinds;
+    KeyBinding mainKeybind;
 
     public AbilityKeybindingBase(IAbilityHolder owner)
     {
@@ -38,14 +40,17 @@ public abstract class AbilityKeybindingBase extends Ability
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onUpdate()
+    public void tick()
     {
         if (!this.owner.world.isRemote)
             return;
 
-        for (KeyBinding keybind : this.keybinds)
+        for (KeyBinding keybind : this.getKeybinds())
         {
             String keyName = this.getKeybindName(keybind);
+            if (this instanceof AbilityCooldown && ((AbilityCooldown)this).isOnCooldown(keyName))
+                continue;
+
             MutableBoolean hasBeenPressed = this.hasBeenPressed.get(keyName);
 
             if (keybind.isKeyDown() && !hasBeenPressed.booleanValue())
@@ -83,8 +88,13 @@ public abstract class AbilityKeybindingBase extends Ability
         OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageOnAbilityKey(this.getEntry(), keybind, false));
     }
 
+    public Collection<String> getKeys()
+    {
+        return Collections.unmodifiableSet(this.hasBeenPressed.keySet());
+    }
+
     /**
-     * @return The keycode of the ability to be activated with
+     * @return The keycode of the ability to be activated with. If you're using {@link #getKeybinds()} you can just keep this as 0
      * @see KeyEvent
      */
     public abstract int getKeyCode();
@@ -108,12 +118,12 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @return The keybind that is assigned to this ability
+     * @return The keybind that is assigned to this ability.
      */
     @OnlyIn(Dist.CLIENT)
-    public KeyBinding getKey()
+    public KeyBinding getKeybind()
     {
-        if (this.keybinds == null || this.keybinds.length == 0)
+        if (this.mainKeybind == null)
         {
             if (this.getKeyCode() <= 0)
                 return null;
@@ -123,40 +133,40 @@ public abstract class AbilityKeybindingBase extends Ability
             {
                 if (keybinding.getKeyDescription().equals("key." + location.getNamespace() + "." + location.getPath()))
                 {
-                    return keybinding;
+                    return this.mainKeybind = keybinding;
                 }
             }
 
             return null;
         }
 
-        return this.keybinds[0];
+        return this.mainKeybind;
     }
 
     @OnlyIn(Dist.CLIENT)
     protected final KeyBinding getKeybindFromName(@Nullable String keybind)
     {
-        return keybind == null ? this.getKey() : Arrays.stream(this.keybinds)
+        return keybind == null ? this.getKeybind() : Arrays.stream(this.getKeybinds())
                 .filter(key -> keybind.equals(key.getKeyDescription()))
                 .findAny()
-                .orElseGet(() -> this.keybinds[0]);
+                .orElseGet(() -> this.getKeybinds()[0]);
     }
 
     @OnlyIn(Dist.CLIENT)
     protected final String getKeybindName(KeyBinding keybind)
     {
         return keybind.getKeyDescription()
-                .equals(this.getKey().getKeyDescription()) ?
+                .equals(this.getKeybind().getKeyDescription()) ?
                 null :
                 keybind.getKeyDescription();
     }
 
     /**
-     * If you need to use multiple keybindings.
+     * Override this if you need to use multiple keybindings.
      */
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeybinds()
     {
-        return this.keybinds;
+        return new KeyBinding[] {this.getKeybind()};
     }
 }

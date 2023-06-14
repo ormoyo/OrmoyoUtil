@@ -3,6 +3,7 @@
   "minVersion": "0.8",
   "package": "com.ormoyo.ormoyoutil.mixin",
   "compatibilityLevel": "JAVA_8",
+  "mixinPriority": 1002,
   "refmap": "ormoyoutil.refmap.json",
   "mixins": [
     "MixinPlayerEntity",
