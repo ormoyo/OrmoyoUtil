@@ -10,10 +10,9 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -24,7 +23,7 @@ public class AbilityEventListener implements IAbilityEventListener
     private static final String HANDLER_DESC = Type.getInternalName(IAbilityEventListener.class);
     private static final String HANDLER_FUNC_DESC = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(Ability.class), Type.getType(Event.class));
     private static final ASMClassLoader LOADER = new ASMClassLoader();
-    private static final HashMap<Method, Class<?>> cache = Maps.newHashMap();
+    private static final Map<Method, Class<?>> cache = Maps.newHashMap();
 
     private final Method method;
     private final Class<? extends Event> eventClass;

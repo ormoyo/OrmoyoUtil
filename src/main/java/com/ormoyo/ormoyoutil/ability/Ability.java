@@ -6,6 +6,7 @@ import com.google.common.collect.Multimap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
+import com.ormoyo.ormoyoutil.network.MessageSetAbilityKeys;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
 import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
 import com.ormoyo.ormoyoutil.util.ASMUtils;
@@ -45,12 +46,12 @@ import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
-import java.lang.invoke.LambdaConversionException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -228,6 +229,8 @@ public abstract class Ability
         private static final Multimap<ResourceLocation, IAbilityEventListener> listeners = ArrayListMultimap.create();
         private static final Consumer<Event> serverEventAction;
 
+        private static final BiConsumer<PlayerEntity, Collection<Ability>> SET_ABILITIES;
+
 
         @SuppressWarnings("unused")
         public static void onInit()
@@ -238,7 +241,7 @@ public abstract class Ability
                 {
                     // || Constructor ||
                     Constructor<? extends Ability> constructor = entry.getAbilityClass().getConstructor(IAbilityHolder.class);
-                    entry.abilityConstructor = ASMUtils.createLambdaFromConstructor(Function.class, constructor);
+                    entry.abilityConstructor = ASMUtils.createConstructorCallback(Function.class, constructor);
 
                     // || Methods ||
                     Collection<Method> eventMethods = Stream.of(entry.getAbilityClass().getMethods()).filter(method -> method.isAnnotationPresent(SubscribeEvent.class)).collect(Collectors.toSet());
@@ -270,7 +273,7 @@ public abstract class Ability
                     }
                 }
             }
-            catch (ReflectiveOperationException | LambdaConversionException e)
+            catch (ReflectiveOperationException e)
             {
                 e.printStackTrace();
             }
@@ -291,13 +294,44 @@ public abstract class Ability
                             (entry.getCondition() == null || entry.getConditionCheckingEvents().length == 0)))
                     .collect(Collectors.toSet());
 
+            SET_ABILITIES.accept(event.getPlayer(), entries.stream()
+                    .map(entry -> entry.newInstance(abilityHolder))
+                    .collect(Collectors.toSet()));
+
             OrmoyoUtil.NETWORK_CHANNEL.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
-                    new MessageSetAbilities(event.getPlayer(), entries));
+                    new MessageSetAbilities(entries));
+        }
+
+        @SubscribeEvent
+        public static void onStartTrack(PlayerEvent.StopTracking event)
+        {
+            if (event.getTarget() instanceof PlayerEntity)
+            {
+                IAbilityHolder abilityHolder = (IAbilityHolder) event.getTarget();
+
+                OrmoyoUtil.NETWORK_CHANNEL.send(
+                        PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
+                        new MessageSetAbilities(abilityHolder.getAbilities().stream()
+                                .map(Ability::getEntry)
+                                .collect(Collectors.toSet())));
+            }
         }
 
         static
         {
+            BiConsumer<PlayerEntity, Collection<Ability>> func = null;
+            try
+            {
+                Method method = PlayerEntity.class.getDeclaredMethod("setPlayerAbilities", Collection.class);
+                func = ASMUtils.createLambdaFromMethod(BiConsumer.class, method);
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+            SET_ABILITIES = func;
+
             serverEventAction = event ->
             {
                 if (ServerLifecycleHooks.getCurrentServer() == null)
@@ -412,8 +446,10 @@ public abstract class Ability
                 }
 
                 currentConstruct.hasBeenPressed.put(keybind.getKeyDescription(), new MutableBoolean());
+                AbilityKeybindingBase.KEYBIND_IDS.put(keybind.getKeyDescription(), AbilityKeybindingBase.KEYBIND_IDS.size() + 1);
             }
 
+            OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageSetAbilityKeys(AbilityKeybindingBase.KEYBIND_IDS.inverse()));
             currentConstruct = null;
         }
     }
@@ -457,27 +493,26 @@ public abstract class Ability
         public static void registerAbilityEventPredicates(RegistryEvent.Register<AbilityEventEntry> event)
         {
             register(event, EntityEvent.class, EventPredicates.ENTITY_EVENT);
-            register(event, PlayerEvent.class, EventPredicates.PLAYER_EVENT);
             register(event, LivingAttackEvent.class, EventPredicates.LIVING_ATTACK_EVENT);
             register(event, LivingDeathEvent.class, EventPredicates.LIVING_DEATH_EVENT);
             register(event, ProjectileImpactEvent.class, EventPredicates.PROJECTILE_IMPACT_EVENT);
-            register(event, TickEvent.ClientTickEvent.class, EventPredicates.CLIENT_TICK_EVENT);
-            register(event, TickEvent.RenderTickEvent.class, EventPredicates.RENDER_TICK_EVENT);
-            register(event, RenderGameOverlayEvent.class, EventPredicates.RENDER_GAME_OVERLAY_EVENT);
-            register(event, RenderLivingEvent.class, EventPredicates.RENDER_LIVING_EVENT);
-            register(event, EntityViewRenderEvent.class, EventPredicates.ENTITY_VIEW_RENDER_EVENT);
-            register(event, InputEvent.class, EventPredicates.INPUT_EVENT);
-            register(event, RenderHandEvent.class, EventPredicates.RENDER_HAND_EVENT);
-            register(event, RenderArmEvent.class, EventPredicates.RENDER_ARM_EVENT);
-            register(event, ClientPlayerNetworkEvent.class, EventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
-            register(event, GuiOpenEvent.class, EventPredicates.GUI_OPEN_EVENT);
         }
 
         @SubscribeEvent
         @OnlyIn(Dist.CLIENT)
         public static void registerAbilityEventPredicatesOnClient(RegistryEvent.Register<AbilityEventEntry> event)
         {
-            register(event, GuiScreenEvent.class, (ability, player) -> true);
+            register(event, TickEvent.ClientTickEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, TickEvent.RenderTickEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, RenderGameOverlayEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, EntityViewRenderEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, InputEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, GuiScreenEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, GuiOpenEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, RenderHandEvent.class, ClientEventPredicates.defaultClientPredicate());
+            register(event, RenderLivingEvent.class, ClientEventPredicates.RENDER_LIVING_EVENT);
+            register(event, RenderArmEvent.class, ClientEventPredicates.RENDER_ARM_EVENT);
+            register(event, ClientPlayerNetworkEvent.class, ClientEventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
         }
 
         private static <T extends Event> void register(RegistryEvent.Register<AbilityEventEntry> event, Class<T> clazz, IAbilityEventPredicate<T> predicate)
@@ -508,81 +543,54 @@ public abstract class Ability
             public static final IAbilityEventPredicate<EntityEvent>
                     ENTITY_EVENT =
                     (ability, event) ->
-                            ability.owner.equals(event.getEntity());
+                            ability.getOwner().equals(event.getEntity());
 
             public static final IAbilityEventPredicate<LivingAttackEvent>
                     LIVING_ATTACK_EVENT =
                     (ability, event) ->
-                            ability.owner.equals(event.getEntityLiving()) ||
-                                    ability.owner.equals(event.getSource().getTrueSource());
+                            ability.getOwner().equals(event.getEntityLiving()) ||
+                                    ability.getOwner().equals(event.getSource().getTrueSource());
 
             public static final IAbilityEventPredicate<LivingDeathEvent>
                     LIVING_DEATH_EVENT =
                     (ability, event) ->
-                            ability.owner.equals(event.getEntityLiving()) ||
-                                    ability.owner.equals(event.getSource().getTrueSource());
+                            ability.getOwner().equals(event.getEntityLiving()) ||
+                                    ability.getOwner().equals(event.getSource().getTrueSource());
 
             public static final IAbilityEventPredicate<ProjectileImpactEvent>
                     PROJECTILE_IMPACT_EVENT =
                     (ability, event) ->
-                            ability.owner.equals(((ProjectileEntity) event.getEntity()).getShooter()) ||
-                                    ability.owner.equals(event.getRayTraceResult().getType() == RayTraceResult.Type.ENTITY ?
+                            ability.getOwner().equals(((ProjectileEntity) event.getEntity()).getShooter()) ||
+                                    ability.getOwner().equals(event.getRayTraceResult().getType() == RayTraceResult.Type.ENTITY ?
                                             ((EntityRayTraceResult) event.getRayTraceResult()).getEntity() : null);
+        }
 
-            public static final IAbilityEventPredicate<PlayerEvent>
-                    PLAYER_EVENT =
-                    (ability, event) ->
-                            ability.owner.equals(event.getPlayer());
+        @OnlyIn(Dist.CLIENT)
+        public static class ClientEventPredicates
+        {
 
-            public static final IAbilityEventPredicate<TickEvent.ClientTickEvent>
-                    CLIENT_TICK_EVENT =
-                    (ability, event) ->
-                            true;
-
-            public static final IAbilityEventPredicate<TickEvent.RenderTickEvent>
-                    RENDER_TICK_EVENT =
-                    (ability, event) ->
-                            true;
-
-            public static final IAbilityEventPredicate<RenderGameOverlayEvent>
-                    RENDER_GAME_OVERLAY_EVENT =
-                    (ability, event) ->
-                            true;
+            private static<T extends Event> IAbilityEventPredicate<T> defaultClientPredicate()
+            {
+                return (ability, event) ->
+                          ability.getOwner().equals(Minecraft.getInstance().player);
+            }
 
             @SuppressWarnings("rawtypes")
             public static final IAbilityEventPredicate<RenderLivingEvent>
                     RENDER_LIVING_EVENT =
                     (ability, event) ->
-                            !ability.owner.equals(event.getEntity());
+                            !ability.getOwner().equals(event.getEntity());
 
-            public static final IAbilityEventPredicate<EntityViewRenderEvent>
-                    ENTITY_VIEW_RENDER_EVENT =
-                    (ability, event) ->
-                            true;
-            public static final IAbilityEventPredicate<InputEvent>
-                    INPUT_EVENT =
-                    (ability, event) ->
-                            true;
-
-            public static final IAbilityEventPredicate<RenderHandEvent>
-                    RENDER_HAND_EVENT =
-                    (ability, event) ->
-                            true;
 
             public static final IAbilityEventPredicate<RenderArmEvent>
                     RENDER_ARM_EVENT =
                     (ability, event) ->
-                            true;
+                            ability.getOwner().equals(event.getPlayer());
 
             public static final IAbilityEventPredicate<ClientPlayerNetworkEvent>
                     CLIENT_PLAYER_NETWORK_EVENT =
                     (ability, event) ->
-                            true;
-
-            public static final IAbilityEventPredicate<GuiOpenEvent>
-                    GUI_OPEN_EVENT =
-                    (ability, event) ->
-                            true;
+                            ability.getOwner().equals(event.getPlayer());
         }
     }
 }

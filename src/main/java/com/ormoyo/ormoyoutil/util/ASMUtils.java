@@ -3,18 +3,12 @@ package com.ormoyo.ormoyoutil.util;
 import com.google.common.collect.Maps;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 
 import javax.annotation.Nonnull;
 import java.lang.invoke.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.lang.reflect.*;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,8 +21,7 @@ public class ASMUtils
     private static final AtomicInteger IDs = new AtomicInteger();
     private static final ASMClassLoader LOADER = new ASMClassLoader();
 
-    private static final HashMap<Method, Class<?>> CALLERS = Maps.newHashMap();
-    private static final Map<Method, IInvoker<?>> INVOKERS = Maps.newHashMap();
+    private static final Map<Executable, Class<?>> CALLBACKS = Maps.newHashMap();
 
     @Nonnull
     private static final MethodHandles.Lookup privateAccessLookup = Objects.requireNonNull(ObfuscationReflectionHelper.getPrivateValue(MethodHandles.Lookup.class, null, "IMPL_LOOKUP"));
@@ -167,9 +160,9 @@ public class ASMUtils
     {
         Method ifaceMethod = getFunctionalInterfaceMethod(iface);
 
-        if (CALLERS.containsKey(callback))
+        if (CALLBACKS.containsKey(callback))
         {
-            return (T) CALLERS.get(callback);
+            return (T) CALLBACKS.get(callback);
         }
 
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
@@ -181,12 +174,11 @@ public class ASMUtils
         String handlerDesc = Type.getInternalName(iface);
 
         Type instType = Type.getType(callback.getDeclaringClass());
-        Type ifaceMethodType = Type.getType(ifaceMethod);
+        String handlerFuncDesc = Type.getMethodDescriptor(ifaceMethod);
+
+        Type ifaceMethodType = Type.getType(handlerFuncDesc);
 
         boolean isStatic = Modifier.isStatic(callback.getModifiers());
-
-        String handlerFuncDesc = Type.getMethodDescriptor(ifaceMethodType.getReturnType(), ifaceMethodType.getArgumentTypes());
-
         cw.visit(V1_6, ACC_PUBLIC | ACC_SUPER, desc, null, "java/lang/Object", new String[]{handlerDesc});
 
         cw.visitSource(".dynamic", null);
@@ -221,7 +213,11 @@ public class ASMUtils
                 mv.checkCast(Type.getType(clazz));
             }
 
-            mv.invokeStatic(instType, new org.objectweb.asm.commons.Method(callback.getName(), Type.getMethodDescriptor(callback)));
+            org.objectweb.asm.commons.Method method = org.objectweb.asm.commons.Method.getMethod(callback);
+            if (isStatic)
+                mv.invokeStatic(instType, method);
+            else
+                mv.invokeVirtual(instType, method);
 
             mv.returnValue();
             mv.endMethod();
@@ -229,205 +225,101 @@ public class ASMUtils
         cw.visitEnd();
 
         Class<?> ret = LOADER.define(name, cw.toByteArray());
-        CALLERS.put(callback, ret);
+        CALLBACKS.put(callback, ret);
 
         try
         {
             return (T) ret.getConstructor().newInstance();
         }
-        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e)
+        catch (ReflectiveOperationException e)
         {
             return null;
         }
     }
 
     /**
-     * Creates an {@link IInvoker} that invokes the callback method when called
+     * Creates an instance of the provided interface that when called will call the provided method
      *
-     * @param callback The method needs to be public(a public method inside a private class still works)
-     * @return The invoker to be used to invoke the method
+     * @param iface    The interface to implement. <br> This has to be a {@link FunctionalInterface} and match parameters and return types with the provided method
+     * @param callback The method to call
+     * @param <T>      Interface type
      */
-    public static <T> IInvoker<T> createMethodInvoker(Method callback)
+    public static <T, R> T createConstructorCallback(Class<T> iface, Constructor<R> callback)
     {
-        if (INVOKERS.containsKey(callback))
-            return (IInvoker<T>) INVOKERS.get(callback);
+        Method ifaceMethod = getFunctionalInterfaceMethod(iface);
 
-        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        if (CALLBACKS.containsKey(callback))
+        {
+            return (T) CALLBACKS.get(callback);
+        }
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         GeneratorAdapter mv;
 
-        String descriptor;
-
-        boolean isMethodStatic = Modifier.isStatic(callback.getModifiers());
-        boolean isInterface = callback.getDeclaringClass().isInterface();
-
-        String parameters = Arrays.toString(callback.getParameterTypes());
-        String name = String.format("%s_%s(%s)", callback.getDeclaringClass().getSimpleName(),
-                callback.getName(), parameters.substring(1, parameters.length() - 1));
-
+        String name = getUniqueName(callback);
         String desc = name.replace('.', '/');
-        String instType = Type.getInternalName(callback.getDeclaringClass());
 
-        Type owner = Type.getObjectType(desc);
-        Type objectType = Type.getType(Object.class);
+        String handlerDesc = Type.getInternalName(iface);
 
-        cw.visit(V1_6, ACC_PUBLIC | ACC_SUPER, desc, null, objectType.getInternalName(), new String[]{Type.getInternalName(IInvoker.class)});
+        Type instType = Type.getType(callback.getDeclaringClass());
+        String handlerFuncDesc = Type.getMethodDescriptor(ifaceMethod);
+
+        Type ifaceMethodType = Type.getType(handlerFuncDesc);
+
+        cw.visit(V1_6, ACC_PUBLIC | ACC_SUPER, desc, null, "java/lang/Object", new String[]{handlerDesc});
         cw.visitSource(".dynamic", null);
         {
-            descriptor = Type.getMethodDescriptor(Type.VOID_TYPE);
+            // Constructor
+            mv = new GeneratorAdapter(cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null), ACC_PUBLIC, "<init>", "()V");
 
-            mv = new GeneratorAdapter(cw.visitMethod(ACC_PUBLIC, "<init>", descriptor, null, null), ACC_PUBLIC, "<init>", descriptor);
+            // super()
             mv.loadThis();
+            mv.invokeConstructor(Type.getType(Object.class), new org.objectweb.asm.commons.Method("<init>", "()V"));
 
-            mv.invokeConstructor(objectType, new org.objectweb.asm.commons.Method("<init>", "()V"));
             mv.returnValue();
-
             mv.endMethod();
         }
         {
-            Class<?>[] params = callback.getParameterTypes();
+            mv = new GeneratorAdapter(cw.visitMethod(ACC_PUBLIC, ifaceMethod.getName(), handlerFuncDesc, null, null), ACC_PUBLIC, ifaceMethod.getName(), handlerFuncDesc);
 
-            Label exception = new Label();
-            Label end = new Label();
+            //Return new instance
+            mv.newInstance(instType);
+            mv.dup();
 
-            descriptor = Type.getMethodDescriptor(objectType, objectType, Type.getType(Object[].class));
-
-            mv = new GeneratorAdapter(cw.visitMethod(ACC_PUBLIC | ACC_VARARGS, "invoke", descriptor, null, null), ACC_PUBLIC | ACC_VARARGS, "invoke", descriptor);
-            mv.loadArg(1);
-
-            mv.arrayLength();
-            mv.push(params.length);
-
-            mv.ifICmp(IFNE, exception);
-            if (!isMethodStatic)
+            for (int i = 0; i < ifaceMethodType.getArgumentTypes().length; i++)
             {
-                mv.loadArg(0);
-                mv.checkCast(Type.getObjectType(instType));
+                Class<?> clazz = callback.getParameterTypes()[i];
+
+                mv.loadArg(i);
+                mv.checkCast(Type.getType(clazz));
             }
 
-            for (int i = 0; i < params.length; i++)
-            {
-                Class<?> parameter = params[i];
-                Type parameterType = Type.getType(parameter);
+            mv.invokeConstructor(instType, org.objectweb.asm.commons.Method.getMethod(callback));
 
-                if (parameter.isPrimitive())
-                {
-                    if (parameter == boolean.class)
-                    {
-                        mv.loadArg(1);
-                        mv.push(i);
-
-                        mv.arrayLoad(objectType);
-                        mv.checkCast(Type.getType(Boolean.class));
-
-                        mv.invokeVirtual(Type.getType(Boolean.class), new org.objectweb.asm.commons.Method("booleanValue", "()Z"));
-                    }
-                    else if (parameter == char.class)
-                    {
-                        mv.loadArg(1);
-                        mv.push(i);
-
-                        mv.arrayLoad(objectType);
-                        mv.checkCast(Type.getType(Character.class));
-
-                        mv.invokeVirtual(Type.getType(Character.class), new org.objectweb.asm.commons.Method("charValue", "()C"));
-                    }
-                    else
-                    {
-                        mv.loadArg(1);
-                        mv.push(i);
-
-                        mv.arrayLoad(objectType);
-                        mv.checkCast(Type.getType(Number.class));
-
-                        mv.invokeVirtual(Type.getType(Number.class), new org.objectweb.asm.commons.Method(parameter.getName() + "Value", Type.getMethodDescriptor(parameterType)));
-                    }
-                }
-                else
-                {
-                    mv.loadArg(1);
-                    mv.push(i);
-
-                    mv.arrayLoad(objectType);
-                    mv.checkCast(parameterType);
-                }
-            }
-
-            mv.visitMethodInsn(isMethodStatic ? INVOKESTATIC : isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL, instType, callback.getName(), Type.getMethodDescriptor(callback), isInterface);
-
-            if (callback.getReturnType() == void.class)
-                mv.visitInsn(ACONST_NULL);
-
-            mv.goTo(end);
-
-            mv.visitLabel(exception);
-            mv.newInstance(Type.getType(IllegalArgumentException.class));
-
-            mv.dup();
-
-            mv.push("Given arguments with length %s don't match method arguments with length %s");
-            mv.push(2);
-
-            mv.newArray(objectType);
-            mv.dup();
-
-            mv.push(0);
-            mv.loadArg(1);
-
-            mv.arrayLength();
-            mv.invokeStatic(Type.getType(Integer.class), new org.objectweb.asm.commons.Method("valueOf", Type.getMethodDescriptor(Type.getType(Integer.class), Type.INT_TYPE)));
-
-            mv.arrayStore(objectType);
-            mv.dup();
-
-            mv.push(1);
-            mv.loadThis();
-
-            mv.getField(owner, "paramCount", Type.INT_TYPE);
-            mv.invokeStatic(Type.getType(Integer.class), new org.objectweb.asm.commons.Method("valueOf", Type.getMethodDescriptor(Type.getType(Integer.class), Type.INT_TYPE)));
-
-            mv.arrayStore(objectType);
-            mv.invokeStatic(Type.getType(String.class), new org.objectweb.asm.commons.Method("format", Type.getMethodDescriptor(Type.getType(String.class), Type.getType(String.class), Type.getType(Object[].class))));
-
-            mv.invokeConstructor(Type.getType(IllegalArgumentException.class), new org.objectweb.asm.commons.Method("<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(String.class))));
-            mv.throwException();
-
-            mv.visitLabel(end);
             mv.returnValue();
-
             mv.endMethod();
         }
         cw.visitEnd();
 
-        IInvoker<T> invoker = null;
+        Class<?> ret = LOADER.define(name, cw.toByteArray());
+        CALLBACKS.put(callback, ret);
+
         try
         {
-            invoker = (IInvoker<T>) LOADER.define(name, cw.toByteArray()).newInstance();
-            INVOKERS.put(callback, invoker);
+            return (T) ret.getConstructor().newInstance();
         }
-        catch (InstantiationException | IllegalAccessException e)
+        catch (ReflectiveOperationException e)
         {
-            e.printStackTrace();
+            return null;
         }
-
-        return invoker;
     }
 
-    private static String getUniqueName(Method callback)
+    private static String getUniqueName(Executable callback)
     {
         return String.format("%s_%d_%s_%s_%s", ASMUtils.class.getName(), IDs.getAndIncrement(),
                 callback.getDeclaringClass().getSimpleName(),
                 callback.getName(),
                 callback.getParameterTypes()[0].getSimpleName());
-    }
-
-    public interface IInvoker<T>
-    {
-        /**
-         * @param instance May be null if static
-         * @param args     The method arguments
-         * @return What the provided method returns or null if it returns void
-         */
-        T invoke(Object instance, Object... args);
     }
 
     private static class ASMClassLoader extends ClassLoader

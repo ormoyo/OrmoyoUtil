@@ -27,18 +27,19 @@ public class EntityUtils
 
     public static Entity raytraceEntityFromEntity(Entity entity, float reachDistance)
     {
-        return EntityUtils.raytraceEntityFromEntity(entity, reachDistance, Entity.class);
+        return EntityUtils.raytraceEntityFromEntity(Entity.class, entity, reachDistance);
     }
 
-    public static<T extends Entity> T raytraceEntityFromEntity(Entity entity, float reachDistance, Class<T> entityClass)
+    public static<T extends Entity> T raytraceEntityFromEntity(Class<T> entityClass, Entity entity, float reachDistance)
     {
         Vector3d vec = EntityUtils.getLookedAtPoint(entity, reachDistance);
-        EntityRayResult<T> result = EntityUtils.raytraceEntities(entityClass, entity.world, new Vector3d(entity.getPosX(), entity.getPosY() + entity.getEyeHeight(), entity.getPosZ()), vec);
+        EntityRayResult<T> result = EntityUtils.raytraceEntities(entityClass, entity.getEntityWorld(), new Vector3d(entity.getPosX(), entity.getPosY() + entity.getEyeHeight(), entity.getPosZ()), vec);
 
         if (result.entities.isEmpty())
             return null;
 
-        return result.entities.stream().min(Comparator.comparingDouble((Entity e) -> entity.getDistance(e))).get();
+        Optional<T> optional = result.entities.stream().filter(e -> e.getEntityId() != entity.getEntityId()).min(Comparator.comparingDouble((Entity e) -> entity.getDistance(e)));
+        return optional.orElse(null);
     }
 
     public static EntityRayResult<?> raytraceEntities(World world, Vector3d from, Vector3d to)

@@ -1,5 +1,7 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.network.MessageOnAbilityKey;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
@@ -25,6 +27,7 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityKeybindingBase extends Ability
 {
+    static final BiMap<String, Integer> KEYBIND_IDS = HashBiMap.create();
     final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
 
     @OnlyIn(Dist.CLIENT)
@@ -172,5 +175,23 @@ public abstract class AbilityKeybindingBase extends Ability
             return new KeyBinding[0];
 
         return new KeyBinding[] {this.getKeybind()};
+    }
+
+    public static int convertKeyToId(String keybind)
+    {
+        return KEYBIND_IDS.get(keybind);
+    }
+
+    public static String convertIdToKey(int id)
+    {
+        return KEYBIND_IDS.inverse().get(id);
+    }
+
+    private static void addKeybindIds(Map<Integer, String> keys)
+    {
+        for (Map.Entry<Integer, String> entry : keys.entrySet())
+        {
+            KEYBIND_IDS.inverse().putIfAbsent(entry.getKey(), entry.getValue());
+        }
     }
 }

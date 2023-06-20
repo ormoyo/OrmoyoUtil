@@ -21,16 +21,8 @@ import java.util.stream.Collectors;
 @NetworkMessage(modid = OrmoyoUtil.MODID, direction = NetworkDirection.PLAY_TO_CLIENT)
 public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
 {
-    private static final BiConsumer<PlayerEntity, Collection<Ability>> setAbilities;
+    private static final BiConsumer<PlayerEntity, Collection<Ability>> SET_ABILITIES;
     private final Collection<AbilityEntry> entries;
-
-    public MessageSetAbilities(PlayerEntity player, Collection<AbilityEntry> entries)
-    {
-        this.entries = entries;
-
-        Collection<Ability> abilities = entries.stream().map(entry -> entry.newInstance((IAbilityHolder) player)).collect(Collectors.toList());
-        setAbilities.accept(player, abilities);
-    }
 
     public MessageSetAbilities(Collection<AbilityEntry> entries)
     {
@@ -40,15 +32,17 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
     @Override
     public void encode(PacketBuffer buffer)
     {
-        buffer.writeInt(this.entries.size());
+        buffer.writeVarInt(this.entries.size());
         for (AbilityEntry entry : this.entries)
+        {
             buffer.writeRegistryId(entry);
+        }
     }
 
     @NetworkDecoder(MessageSetAbilities.class)
     public static MessageSetAbilities decode(PacketBuffer buffer)
     {
-        int capacity = buffer.readInt();
+        int capacity = buffer.readVarInt();
         Collection<AbilityEntry> entries = new ArrayList<>(capacity);
 
         for (int i = 0; i < capacity; i++)
@@ -60,8 +54,10 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
     @Override
     public void onClientReceived(PlayerEntity player, NetworkEvent.Context messageContext)
     {
+
+
         Collection<Ability> abilities = this.entries.stream().map(entry -> entry.newInstance((IAbilityHolder) player)).collect(Collectors.toList());
-        setAbilities.accept(player, abilities);
+        SET_ABILITIES.accept(player, abilities);
     }
 
     @Override
@@ -83,6 +79,6 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
         {
             e.printStackTrace();
         }
-        setAbilities = func;
+        SET_ABILITIES = func;
     }
 }

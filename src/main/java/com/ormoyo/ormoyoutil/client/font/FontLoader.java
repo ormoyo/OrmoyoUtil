@@ -9,9 +9,7 @@ import com.ormoyo.ormoyoutil.client.font.FontHelper.Glyph;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.NativeImage;
 import net.minecraft.resources.IResource;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.event.AddReloadListenerEvent;
 
 import javax.imageio.ImageIO;
 import java.awt.Font;

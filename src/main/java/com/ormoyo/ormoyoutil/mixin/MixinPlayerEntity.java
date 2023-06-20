@@ -1,6 +1,6 @@
 package com.ormoyo.ormoyoutil.mixin;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
@@ -30,7 +30,7 @@ import java.util.*;
 @Mixin(PlayerEntity.class)
 public abstract class MixinPlayerEntity extends LivingEntity implements IAbilityHolder
 {
-    protected final Set<Ability> playerAbilities = Sets.newHashSet();
+    protected final Map<Class<? extends Ability>, Ability> playerAbilities = Maps.newHashMap();
 
     protected MixinPlayerEntity(World world)
     {
@@ -40,14 +40,14 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     @Override
     public Collection<Ability> getAbilities()
     {
-        return Collections.unmodifiableSet(this.playerAbilities);
+        return Collections.unmodifiableCollection(this.playerAbilities.values());
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public<T extends Ability> T getAbility(ResourceLocation resourceLocation)
     {
-        for (Ability ability : this.playerAbilities)
+        for (Ability ability : this.playerAbilities.values())
         {
             if (Objects.equals(ability.getEntry().getRegistryName(), resourceLocation))
             {
@@ -61,14 +61,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     @SuppressWarnings("unchecked")
     public<T extends Ability> T getAbility(Class<T> clazz)
     {
-        for (Ability ability : this.playerAbilities)
-        {
-            if (ability.getClass() == clazz)
-            {
-                return (T) ability;
-            }
-        }
-        return null;
+        return (T) this.playerAbilities.get(clazz);
     }
 
     @Override
@@ -76,7 +69,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     {
         Ability ability = entry.newInstance(this);
 
-        boolean isUnlocked = this.getAbility(ability.getClass()) == null && this.playerAbilities.add(ability);
+        boolean isUnlocked = this.getAbility(ability.getClass()) == null && this.playerAbilities.put(entry.getAbilityClass(), ability) == null;
         if (isUnlocked)
         {
             if (MinecraftForge.EVENT_BUS.post(new AbilityEvents.OnAbilityUnlockedEvent(ability)))
@@ -94,7 +87,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/fml/hooks/BasicEventHooks;onPlayerPostTick(Lnet/minecraft/entity/player/PlayerEntity;)V"))
     protected void onTick(CallbackInfo info)
     {
-        for (Ability ability : this.playerAbilities)
+        for (Ability ability : this.playerAbilities.values())
         {
             if (!ability.isEnabled())
                 continue;
@@ -108,7 +101,7 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
     {
         ListNBT list = new ListNBT();
 
-        for (Ability ability : this.playerAbilities)
+        for (Ability ability : this.playerAbilities.values())
         {
             CompoundNBT abilityNBT = new CompoundNBT();
 
@@ -152,9 +145,10 @@ public abstract class MixinPlayerEntity extends LivingEntity implements IAbility
         this.setPlayerAbilities(abilities);
     }
 
-    private void setPlayerAbilities(Collection<Ability> abilities)
+    protected void setPlayerAbilities(Collection<Ability> abilities)
     {
         this.playerAbilities.clear();
-        this.playerAbilities.addAll(abilities);
+        abilities.forEach(ability ->
+                this.playerAbilities.put(ability.getClass(), ability));
     }
 }

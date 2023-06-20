@@ -77,31 +77,26 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
     {
         AbilityDataParameter<T> parameter = entry.getKey();
         int i = DataSerializers.getSerializerId(parameter.getSerializer());
+
         if (i < 0)
-        {
             throw new EncoderException("Unknown serializer type " + parameter.getSerializer());
-        }
-        else
-        {
-            buf.writeByte(parameter.getId());
-            buf.writeVarInt(i);
-            parameter.getSerializer().write(buf, entry.getValue());
-        }
+
+        buf.writeByte(parameter.getId());
+        buf.writeVarInt(i);
+
+        parameter.getSerializer().write(buf, entry.getValue());
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static List<AbilityDataEntry<?>> readEntries(PacketBuffer buf)
     {
-        List<AbilityDataEntry<?>> list = null;
-        int length = buf.readInt();
+        List<AbilityDataEntry<?>> list = Lists.newArrayList();
+        int length = buf.readVarInt();
 
         for (int i = 0; i < length; i++)
         {
-            if (list == null)
-                list = Lists.newArrayList();
-
             int id = buf.readUnsignedByte();
-            int j = buf.readInt();
+            int j = buf.readVarInt();
 
             IDataSerializer<?> serializer = DataSerializers.getSerializer(j);
 

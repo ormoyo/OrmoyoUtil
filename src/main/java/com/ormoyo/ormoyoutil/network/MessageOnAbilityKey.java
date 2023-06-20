@@ -34,8 +34,9 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
     @Override
     public void encode(PacketBuffer buffer)
     {
-        buffer.writeRegistryId(this.entry);
-        buffer.writeString(this.keybind == null ? "" : this.keybind);
+        buffer.writeRegistryIdUnsafe(Ability.getAbilityRegistry(), this.entry);
+        buffer.writeVarInt(this.keybind == null ? 0 :
+                AbilityKeybindingBase.convertKeyToId(this.keybind));
 
         buffer.writeBoolean(this.isPressed);
     }
@@ -43,11 +44,12 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
     @NetworkDecoder(MessageOnAbilityKey.class)
     public static MessageOnAbilityKey decode(PacketBuffer buffer)
     {
-        AbilityEntry entry = buffer.readRegistryId();
-        String keybind = buffer.readString();
+        AbilityEntry entry = buffer.readRegistryIdUnsafe(Ability.getAbilityRegistry());
+        int id = buffer.readVarInt();
 
         boolean isPressed = buffer.readBoolean();
-        keybind = "".equals(keybind) ? null : keybind;
+        String keybind = id == 0 ? null :
+                AbilityKeybindingBase.convertIdToKey(id);
 
         return new MessageOnAbilityKey(entry, keybind, isPressed);
     }

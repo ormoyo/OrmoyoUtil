@@ -161,6 +161,20 @@ jar {
     duplicatesStrategy(DuplicatesStrategy.EXCLUDE)
 }
 
+tasks.register('deobfJar', Jar.class) {
+    from sourceSets.main.output
+
+    group = "build"
+    archiveClassifier.set('deobf')
+}
+
+tasks.build.dependsOn('deobfJar')
+
+artifacts {
+    archives deobfJar
+    archives jar
+}
+
 jar.finalizedBy('reobfJar')
 
 tasks.withType(JavaCompile).configureEach {
