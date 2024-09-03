@@ -1,4 +1,4 @@
-package com.ormoyo.ormoyoutil.ability;
+package com.ormoyo.ormoyoutil.ability.util;
 
 public class AbilityMessage
 {

@@ -1,6 +1,5 @@
 package com.ormoyo.ormoyoutil.ability;
 
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -9,7 +8,7 @@ import java.util.function.Predicate;
 public final class AbilityEntryBuilder
 {
     private Class<? extends Ability> clazz;
-    private Predicate<PlayerEntity> condition;
+    private Predicate<AbilityHolder> condition;
 
     private Class<? extends Event>[] conditionCheckingEvents;
     private ResourceLocation location;
@@ -61,7 +60,7 @@ public final class AbilityEntryBuilder
      * @return this
      */
     @SafeVarargs
-    public final AbilityEntryBuilder condition(Predicate<PlayerEntity> condition, Class<? extends Event>... conditionCheckingEvents)
+    public final AbilityEntryBuilder condition(Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents;

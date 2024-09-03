@@ -10,7 +10,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.command.arguments.EntityArgument;
@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class AcquireAbilityCommand
 {
-	private static final DynamicCommandExceptionType NO_ABILITIES_FOUND = new DynamicCommandExceptionType(str -> new TranslationTextComponent("argument.ability.notfound", str));
+    private static final DynamicCommandExceptionType NO_ABILITIES_FOUND = new DynamicCommandExceptionType(str -> new TranslationTextComponent("argument.ability.notfound", str));
     private static final DynamicCommandExceptionType ABILITY_ALREADY_EXISTS = new DynamicCommandExceptionType(str -> new TranslationTextComponent("argument.ability.alreadyexists", str));
 
     public static void register(CommandDispatcher<CommandSource> dispatcher)
@@ -31,23 +31,29 @@ public class AcquireAbilityCommand
                 .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("abilities", new AbilityParser())
                                 .executes(context -> AcquireAbilityCommand.acquireAbility(context.getSource(), context.getArgument("abilities", AbilityEntry.class))))
-                            )
-                );
+                )
+        );
     }
 
 
-    private static int acquireAbility(CommandSource entity, AbilityEntry entry) throws CommandSyntaxException
+    private static int acquireAbility(CommandSource source, AbilityEntry entry) throws CommandSyntaxException
     {
-        IAbilityHolder abilityHolder = (IAbilityHolder) entity.asPlayer();
+        AbilityHolder abilityHolder = Ability.getAbilityHolder(source.asPlayer());
+
+        if (abilityHolder == null || abilityHolder.getAbilities().isEmpty())
+        {
+            source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.noabilities"), true);
+            return -1;
+        }
+
         if (abilityHolder.getAbility(entry.getRegistryName()) != null)
             throw ABILITY_ALREADY_EXISTS.create(Ability.getAbilityDisplayName(entry.getAbilityClass()));
 
         boolean unlocked = abilityHolder.unlockAbility(entry);
-
-        if(!unlocked)
+        if (!unlocked)
             return -1;
 
-        entity.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.acquireability", Ability.getAbilityDisplayName(entry.getAbilityClass())), true);
+        source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.acquireability", Ability.getAbilityDisplayName(entry.getAbilityClass())), true);
         return 1;
     }
 
@@ -59,7 +65,7 @@ public class AcquireAbilityCommand
         {
             ResourceLocation location = ResourceLocation.read(reader);
 
-            if(!Ability.getAbilityRegistry().containsKey(location))
+            if (!Ability.getAbilityRegistry().containsKey(location))
             {
                 reader.setCursor(0);
                 throw NO_ABILITIES_FOUND.create(String.valueOf(location));
@@ -73,9 +79,7 @@ public class AcquireAbilityCommand
         public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder)
         {
             for (ResourceLocation registryName : Ability.getAbilityRegistry().getKeys())
-            {
                 builder.suggest(registryName.toString());
-            }
 
             return builder.buildFuture();
         }

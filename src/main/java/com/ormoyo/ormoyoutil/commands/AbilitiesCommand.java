@@ -3,7 +3,7 @@ package com.ormoyo.ormoyoutil.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.ormoyo.ormoyoutil.ability.Ability;
-import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.util.text.TranslationTextComponent;
@@ -22,7 +22,13 @@ public class AbilitiesCommand
 
     private static int printAbilities(CommandSource source) throws CommandSyntaxException
     {
-        IAbilityHolder abilityHolder = (IAbilityHolder) source.asPlayer();
+        AbilityHolder abilityHolder = Ability.getAbilityHolder(source.asPlayer());
+
+        if (abilityHolder == null || abilityHolder.getAbilities().isEmpty())
+        {
+            source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.noabilities"), true);
+            return -1;
+        }
 
         Set<String> names = abilityHolder.getAbilities().stream().map(ability -> Ability.getAbilityDisplayName(ability.getClass()).getString()).collect(Collectors.toSet());
         source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.abilities", names), true);

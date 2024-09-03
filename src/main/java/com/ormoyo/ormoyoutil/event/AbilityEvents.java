@@ -12,7 +12,6 @@ import net.minecraftforge.eventbus.api.Cancelable;
 public class AbilityEvents extends PlayerEvent
 {
     protected final Ability ability;
-
     public AbilityEvents(Ability ability)
     {
         super(ability.getOwner());

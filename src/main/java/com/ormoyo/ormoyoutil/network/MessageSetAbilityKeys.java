@@ -1,10 +1,12 @@
 package com.ormoyo.ormoyoutil.network;
 
+import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.lang.reflect.Method;
@@ -13,11 +15,12 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 @SuppressWarnings("unchecked")
+@NetworkMessage(modid = OrmoyoUtil.MODID, direction = NetworkDirection.PLAY_TO_SERVER)
 public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys>
 {
     private static final Consumer<Map<Integer, String>> ADD_KEY_IDS;
-
     private final Map<Integer, String> keys;
+
     public MessageSetAbilityKeys(Map<Integer, String> keys)
     {
         this.keys = keys;

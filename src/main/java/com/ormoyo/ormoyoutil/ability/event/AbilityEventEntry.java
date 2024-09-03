@@ -1,4 +1,4 @@
-package com.ormoyo.ormoyoutil.ability;
+package com.ormoyo.ormoyoutil.ability.event;
 
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
@@ -7,9 +7,9 @@ import net.minecraftforge.registries.ForgeRegistryEntry;
 public class AbilityEventEntry extends ForgeRegistryEntry<AbilityEventEntry>
 {
     private final Class<? extends Event> event;
-    private final IAbilityEventPredicate<? extends Event> predicate;
+    private final AbilityEventPredicate<? extends Event> predicate;
 
-    public <T extends Event> AbilityEventEntry(ResourceLocation name, Class<T> event, IAbilityEventPredicate<T> predicate)
+    public <T extends Event> AbilityEventEntry(ResourceLocation name, Class<T> event, AbilityEventPredicate<T> predicate)
     {
         this.setRegistryName(name);
 
@@ -22,7 +22,7 @@ public class AbilityEventEntry extends ForgeRegistryEntry<AbilityEventEntry>
         return this.event;
     }
 
-    public IAbilityEventPredicate<? extends Event> getEventPredicate()
+    public AbilityEventPredicate<? extends Event> getEventPredicate()
     {
         return this.predicate;
     }

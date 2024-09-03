@@ -1,7 +1,7 @@
 package com.ormoyo.ormoyoutil.abilities;
 
 import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
-import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
@@ -10,9 +10,9 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class ToggleAbility extends AbilityCooldown
 {
-    private final Map<String, MutableBoolean> isToggled = new NonNullMap<>(this.getKeybinds().length, new MutableBoolean(), true);
+    private final Map<String, MutableBoolean> isToggled = new NonNullMap<>(this.getKeybinds().length, MutableBoolean::new, true);
 
-    public ToggleAbility(IAbilityHolder owner)
+    public ToggleAbility(AbilityHolder owner)
     {
         super(owner);
     }

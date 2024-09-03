@@ -33,12 +33,12 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     private KeyBinding mainKeybind;
 
-    public AbilityKeybindingBase(IAbilityHolder owner)
+    public AbilityKeybindingBase(AbilityHolder owner)
     {
         super(owner);
 
-        ClientEventHandler.currentConstruct = this;
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> ClientEventHandler::onKeybindBaseConstruct);
+        AbilityEventHandler.ClientEventHandler.currentConstruct = this;
+        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> AbilityEventHandler.ClientEventHandler::onKeybindBaseConstruct);
     }
 
     @Override

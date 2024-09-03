@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import com.ormoyo.ormoyoutil.event.AbilityEvents.StatsEvents.CalculateEntityExp;
 import com.ormoyo.ormoyoutil.event.AbilityEvents.StatsEvents.LevelUpEvent;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
@@ -33,7 +33,7 @@ public class StatsAbility extends Ability
     private static final AbilityDataParameter<Integer> EXP = AbilitySyncManager.createKey(StatsAbility.class, DataSerializers.VARINT);
     private static final AbilityDataParameter<Integer> REQUIRED_EXP = AbilitySyncManager.createKey(StatsAbility.class, DataSerializers.VARINT);
 
-    public StatsAbility(IAbilityHolder owner)
+    public StatsAbility(AbilityHolder owner)
     {
         super(owner);
     }
@@ -52,6 +52,7 @@ public class StatsAbility extends Ability
     @SubscribeEvent
     public void onDeathEvent(LivingDeathEvent event)
     {
+        System.out.println(Ability.getAbilityCapability());
         if (OrmoyoUtil.Config.LEVEL_SYSTEM.USE_MINECRAFT_LEVELING.get())
             return;
 
@@ -68,6 +69,7 @@ public class StatsAbility extends Ability
                 exp = entityToExp.get(event.getEntityLiving().getClass());
 
             CalculateEntityExp expEvent = new CalculateEntityExp(this, event.getEntityLiving(), exp);
+
             if (MinecraftForge.EVENT_BUS.post(expEvent))
                 exp = 0;
 
@@ -107,12 +109,14 @@ public class StatsAbility extends Ability
         }
     }
 
+    @SuppressWarnings("ConstantConditions")
     public void onLevelUp(PlayerXpEvent.LevelChange event)
     {
         if (!OrmoyoUtil.Config.LEVEL_SYSTEM.USE_MINECRAFT_LEVELING.get())
             return;
 
-        IAbilityHolder holder = (IAbilityHolder) this.owner;
+        AbilityHolder holder = Ability.getAbilityHolder(this.getOwner());
+
         for (AbilityEntry entry : Ability.getAbilityRegistry())
         {
             if (holder.getAbility(entry.getRegistryName()) != null)
@@ -144,6 +148,7 @@ public class StatsAbility extends Ability
         this.setRequiredEXP(compound.getInt("requiredEXP"));
     }
 
+    @SuppressWarnings("ConstantConditions")
     public void levelUp()
     {
         this.setLevel(this.getLevel() + 1);
@@ -167,7 +172,7 @@ public class StatsAbility extends Ability
 
         this.setRequiredEXP(this.getRequiredEXP() + MathUtils.randomInt(this.owner.getRNG(), this.getLevel(), MathHelper.clamp(multiplayer * this.getLevel(), this.getLevel(), Integer.MAX_VALUE - 1)));
 
-        IAbilityHolder holder = (IAbilityHolder) this.owner;
+        AbilityHolder holder = Ability.getAbilityHolder(this.getOwner());
         for (AbilityEntry entry : Ability.getAbilityRegistry())
         {
             if (holder.getAbility(entry.getRegistryName()) != null)

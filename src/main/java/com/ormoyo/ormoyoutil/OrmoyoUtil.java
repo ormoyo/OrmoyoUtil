@@ -50,10 +50,9 @@ public class OrmoyoUtil
     {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::doClientStuff);
-        FMLJavaModLoadingContext.get().getModEventBus().addListener(StatsAbility::onIMCHandle);
 
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(StatsAbility::onIMCHandle);
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, Config.SPEC, "ormoyoutil.toml");
-        MinecraftForge.EVENT_BUS.register(this);
     }
 
     private void setup(FMLCommonSetupEvent event)
@@ -71,6 +70,8 @@ public class OrmoyoUtil
         {
             NetworkHandler.registerNetworkMessages(data);
         }
+
+        CapabilityManager.INSTANCE.register(AbilityHolder.class, new AbilityHolderStorage(), AbilityHolderImpl::new);
     }
 
     private void doClientStuff(FMLClientSetupEvent event)
@@ -92,7 +93,7 @@ public class OrmoyoUtil
             {
                 if (AbilityKeybindingBase.class.isAssignableFrom(entry.getAbilityClass()))
                 {
-                    AbilityKeybindingBase ability = (AbilityKeybindingBase) entry.newInstance((IAbilityHolder) mc.player);
+                    AbilityKeybindingBase ability = (AbilityKeybindingBase) entry.newInstance(Ability.getAbilityHolder(null));
                     if (ability.getKeyCode() <= 0 || ability.getKeyType() == null)
                         continue;
 
@@ -108,13 +109,6 @@ public class OrmoyoUtil
                 }
             }
         });
-    }
-
-    @SubscribeEvent
-    public void onRegisterCommands(RegisterCommandsEvent event)
-    {
-        AcquireAbilityCommand.register(event.getDispatcher());
-        AbilitiesCommand.register(event.getDispatcher());
     }
 
     public static class Config

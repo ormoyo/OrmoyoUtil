@@ -7,10 +7,10 @@ public class AbilityDataParameter<T>
     private final IDataSerializer<T> serializer;
     private final int id;
 
-    public AbilityDataParameter(int id, IDataSerializer<T> serlizer)
+    public AbilityDataParameter(int id, IDataSerializer<T> serializer)
     {
         this.id = id;
-        this.serializer = serlizer;
+        this.serializer = serializer;
     }
 
     public IDataSerializer<T> getSerializer()
