@@ -3,5 +3,6 @@
   "argument.ability.alreadyexists": "The ability %s is already unlocked",
   "commands.ormoyoutil.acquireability": "You have acquired the ability %s",
   "commands.ormoyoutil.abilities": "You have the abilities: %s",
+  "commands.ormoyoutil.noabilities": "You have no abilities! Maybe some error?",
   "ability.ormoyoutil.stats.name": "Stats"
 }
