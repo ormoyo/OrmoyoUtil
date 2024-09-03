@@ -135,7 +135,7 @@ class AbilityEventHandler
         }
         catch (ReflectiveOperationException e)
         {
-            e.printStackTrace();
+            OrmoyoUtil.LOGGER.error("A critical error has occurred by reflection on init");
         }
     }
 
@@ -184,7 +184,7 @@ class AbilityEventHandler
 
         OrmoyoUtil.NETWORK_CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
-                new MessageSetAbilities(event.getPlayer(), entries));
+                new MessageSetAbilities(abilityHolder, entries));
     }
 
     @SubscribeEvent
@@ -200,7 +200,7 @@ class AbilityEventHandler
 
             OrmoyoUtil.NETWORK_CHANNEL.send(
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
-                    new MessageSetAbilities(targetedPlayer, abilityHolder.getAbilities().stream()
+                    new MessageSetAbilities(abilityHolder, abilityHolder.getAbilities().stream()
                             .filter(Ability::isClientAbility)
                             .filter(ability -> SHARED_ABILITIES.contains(ability.getClass()))
                             .map(Ability::getEntry)

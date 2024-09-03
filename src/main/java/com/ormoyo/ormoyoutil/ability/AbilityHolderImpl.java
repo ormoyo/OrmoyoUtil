@@ -72,7 +72,7 @@ public class AbilityHolderImpl implements AbilityHolder
                 return false;
 
             if (EffectiveSide.get().isServer())
-                OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(this::getPlayer), new MessageUnlockAbility(ability.getOwner(), ability.getEntry()));
+                OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(this::getPlayer), new MessageUnlockAbility(this, ability.getEntry()));
 
             ability.onUnlock();
         }
