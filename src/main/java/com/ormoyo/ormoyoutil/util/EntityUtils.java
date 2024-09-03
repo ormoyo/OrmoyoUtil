@@ -30,7 +30,7 @@ public class EntityUtils
         return EntityUtils.raytraceEntityFromEntity(Entity.class, entity, reachDistance);
     }
 
-    public static<T extends Entity> T raytraceEntityFromEntity(Class<T> entityClass, Entity entity, float reachDistance)
+    public static <T extends Entity> T raytraceEntityFromEntity(Class<T> entityClass, Entity entity, float reachDistance)
     {
         Vector3d vec = EntityUtils.getLookedAtPoint(entity, reachDistance);
         EntityRayResult<T> result = EntityUtils.raytraceEntities(entityClass, entity.getEntityWorld(), new Vector3d(entity.getPosX(), entity.getPosY() + entity.getEyeHeight(), entity.getPosZ()), vec);
@@ -38,7 +38,10 @@ public class EntityUtils
         if (result.entities.isEmpty())
             return null;
 
-        Optional<T> optional = result.entities.stream().filter(e -> e.getEntityId() != entity.getEntityId()).min(Comparator.comparingDouble((Entity e) -> entity.getDistance(e)));
+        Optional<T> optional = result.entities.stream()
+                .filter(e -> e.getEntityId() != entity.getEntityId())
+                .min(Comparator.comparingDouble((Entity e) -> entity.getDistance(e)));
+
         return optional.orElse(null);
     }
 
@@ -74,9 +77,9 @@ public class EntityUtils
         }
         else
         {
-            collidePosX = 30;
-            collidePosY = 30;
-            collidePosZ = 30;
+            collidePosX = Math.abs(context.getEndVec().getX());
+            collidePosY = Math.abs(context.getEndVec().getY());
+            collidePosZ = Math.abs(context.getEndVec().getZ());
         }
 
         double x = context.getStartVec().getX();
@@ -98,13 +101,9 @@ public class EntityUtils
             AxisAlignedBB aabb = entity.getBoundingBox().grow(pad, pad, pad);
 
             if (aabb.contains(context.getStartVec()))
-            {
                 result.addEntityHit(entity);
-            }
             else if (aabb.intersects(boundingBox))
-            {
                 result.addEntityHit(entity);
-            }
         }
 
         return result;

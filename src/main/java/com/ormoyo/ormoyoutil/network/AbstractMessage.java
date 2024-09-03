@@ -39,7 +39,7 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
     @NetworkDecoder(MessageTest.class)
     public static <T extends AbstractMessage<T>> T decode(PacketBuffer buffer)
     {
-        return (T) new MessageTest("test");
+        return (T) new MessageTest(buffer.readVarInt());
     }
 
     /**
@@ -58,12 +58,6 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
      */
     public abstract void onServerReceived(MinecraftServer server, PlayerEntity player, NetworkEvent.Context messageContext);
 
-    private static Tuple<? extends AbstractMessage<?>, NetworkEvent.Context> contextTuple;
-    static Optional<Tuple<? extends AbstractMessage<?>, NetworkEvent.Context>> getContext()
-    {
-        return Optional.ofNullable(contextTuple);
-    }
-
     public static <T extends AbstractMessage<T>> void onMessage(AbstractMessage<T> message, Supplier<NetworkEvent.Context> ctx)
     {
         if (message == null)
@@ -75,5 +69,11 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
 
         DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> MessageMethods.ServerMethods::onServerMessage);
         DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> MessageMethods.ClientMethods::onClientMessage);
+    }
+
+    private static Tuple<? extends AbstractMessage<?>, NetworkEvent.Context> contextTuple;
+    static Optional<Tuple<? extends AbstractMessage<?>, NetworkEvent.Context>> getContext()
+    {
+        return Optional.ofNullable(contextTuple);
     }
 }

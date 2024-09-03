@@ -17,10 +17,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.network.PacketDistributor;
-import org.apache.commons.lang3.ObjectUtils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -29,16 +30,21 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class AbilitySyncManager
 {
-    private static final Map<Class<? extends Ability>, Integer> dataValuesCount = Maps.newHashMap();
-    private final Map<Integer, AbilityDataEntry<?>> entries = Maps.newHashMap();
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    private static final Map<Class<? extends Ability>, Integer> dataValuesCount = Maps.newHashMap();
     private final Ability ability;
+
     private boolean dirty;
+
+    final Map<Integer, AbilityDataEntry<?>> entries = Maps.newHashMap();
 
     public AbilitySyncManager(Ability ability)
     {
         this.ability = ability;
-        if (ability.getOwner() == null) return;
+        if (ability.getOwner() == null)
+            return;
+
         EventHandler.managers.add(this);
     }
 
@@ -46,9 +52,7 @@ public class AbilitySyncManager
     {
         int count;
         if (dataValuesCount.containsKey(clazz))
-        {
             count = dataValuesCount.get(clazz) + 1;
-        }
         else
         {
             int i = 0;
@@ -80,8 +84,10 @@ public class AbilitySyncManager
 
         if (i > 254)
             throw new IllegalArgumentException("Ability data value id is too big with " + i + "! (Max is " + 254 + ")");
+
         if (this.entries.containsKey(i))
             throw new IllegalArgumentException("Duplicate id value for " + i + "!");
+
         if (DataSerializers.getSerializerId(key.getSerializer()) < 0)
             throw new IllegalArgumentException("Unregistered serializer " + key.getSerializer() + " for " + i + "!");
 
@@ -121,7 +127,7 @@ public class AbilitySyncManager
     public <T> void set(AbilityDataParameter<T> key, T value)
     {
         AbilityDataEntry<T> dataentry = this.getEntry(key);
-        if (ObjectUtils.notEqual(value, dataentry.getValue()))
+        if (!Objects.equals(value, dataentry.getValue()))
         {
             dataentry.setValue(value);
             dataentry.setDirty(true);
@@ -147,7 +153,7 @@ public class AbilitySyncManager
         return this.dirty;
     }
 
-    void setEntryValues(List<AbilityDataEntry<?>> entriesIn)
+    void setEntryValues(Collection<AbilityDataEntry<?>> entriesIn)
     {
         this.lock.writeLock().lock();
 
@@ -160,6 +166,7 @@ public class AbilitySyncManager
                 this.ability.notifySyncManagerChange(dataEntry.getKey());
             }
         }
+
         this.lock.writeLock().unlock();
         this.dirty = false;
     }
@@ -175,6 +182,29 @@ public class AbilitySyncManager
         return new AbilityDataParameter<T>(parameter.getId(), parameter.getSerializer());
     }
 
+    Collection<AbilityDataEntry<?>> getDirty()
+    {
+        List<AbilityDataEntry<?>> list = null;
+        this.lock.readLock().lock();
+
+        for (AbilityDataEntry<?> value : this.entries.values())
+        {
+            if (value.isDirty())
+            {
+                if (list == null)
+                    list = Lists.newArrayList();
+
+                value.setDirty(false);
+                list.add(value.copy());
+            }
+        }
+
+        this.lock.readLock().unlock();
+        this.dirty = false;
+
+        return list;
+    }
+
     @EventBusSubscriber(modid = OrmoyoUtil.MODID)
     private static class EventHandler
     {
@@ -183,31 +213,14 @@ public class AbilitySyncManager
         @SubscribeEvent
         public static void onPlayerTick(TickEvent.PlayerTickEvent event)
         {
-            if (event.side != LogicalSide.SERVER || event.phase != TickEvent.Phase.END) return;
+            if (event.side != LogicalSide.SERVER || event.phase != TickEvent.Phase.END)
+                return;
+
             for (AbilitySyncManager manager : managers)
             {
-                if (manager.dirty && !manager.ability.getOwner().getEntityWorld().isRemote && manager.ability.getOwner().equals(event.player))
+                if (manager.dirty && !manager.ability.getOwner().getEntityWorld().isRemote)
                 {
-                    List<AbilityDataEntry<?>> list = null;
-                    manager.lock.readLock().lock();
-
-                    for (AbilityDataEntry<?> value : manager.entries.values())
-                    {
-                        if (value.isDirty())
-                        {
-                            if (list == null)
-                                list = Lists.newArrayList();
-
-                            value.setDirty(false);
-                            list.add(value.copy());
-                        }
-                    }
-
-                    if (list != null)
-                        OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) manager.ability.getOwner()), new MessageUpdateDataParameters(manager.ability.getEntry(), list));
-
-                    manager.lock.readLock().unlock();
-                    manager.dirty = false;
+                    OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) manager.ability.getOwner()), new MessageUpdateDataParameters(manager.ability));
                 }
             }
         }

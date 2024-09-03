@@ -110,7 +110,7 @@ public abstract class Ability
     public String getName()
     {
         String registryName = String.valueOf(this.entry);
-        return StringUtils.capitalize(registryName.substring(registryName.lastIndexOf('.')));
+        return StringUtils.capitalize(registryName.substring(registryName.lastIndexOf(':')));
     }
 
     public ITextComponent getTranslatedName()
@@ -151,24 +151,30 @@ public abstract class Ability
     @Override
     public boolean equals(Object obj)
     {
-        if (this == obj) return true;
+        if (this == obj)
+            return true;
+
         if (obj instanceof Ability)
         {
             Ability ability = (Ability) obj;
             return this.entry.equals(ability.entry);
         }
+
         return false;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(entry, owner);
     }
 
     public static AbilityEntry getAbilityClassEntry(Class<? extends Ability> clazz)
     {
         for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
-        {
             if (entry.getAbilityClass() == clazz)
-            {
                 return entry;
-            }
-        }
+
         return null;
     }
 

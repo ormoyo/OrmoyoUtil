@@ -42,7 +42,8 @@ public class FontHelper
         Multimap<ResourceLocation, TexturedRect> batches = HashMultimap.create();
 
         FontRenderEvent.Pre event = new FontRenderEvent.Pre(text, font);
-        if (MinecraftForge.EVENT_BUS.post(event)) return;
+        if (MinecraftForge.EVENT_BUS.post(event))
+            return;
 
         text = event.getText();
         font = event.getFont();
@@ -158,7 +159,8 @@ public class FontHelper
         Multimap<ResourceLocation, TexturedRect> batches = HashMultimap.create();
 
         FontRenderEvent.Pre event = new FontRenderEvent.Pre(text, font);
-        if (MinecraftForge.EVENT_BUS.post(event)) return;
+        if (MinecraftForge.EVENT_BUS.post(event))
+            return;
 
         text = event.getText();
         font = event.getFont();
@@ -223,7 +225,9 @@ public class FontHelper
                 batches.put(location, new TexturedRect(convertFloatsToLong(x + cursorX, y + (hoff - yoff) * scale + cursorY), convertFloatsToLong(w, h), convertShortsToLong(glyph.x, glyph.y, glyph.width, glyph.height)));
                 cursorX += (w + glyph.xoffset) * scale;
 
-                if (character == ' ') continue;
+                if (character == ' ')
+                    continue;
+
                 height = Math.max(height, h + hoff - yoff);
             }
             cursorY += (height + 1) * scale;
@@ -402,7 +406,9 @@ public class FontHelper
                 return 0;
             }
 
-            if (glyph.ch == ' ') continue;
+            if (glyph.ch == ' ')
+                continue;
+
             height = Math.min(height, (float) glyph.yoffset / font.getResolution() * fontSizeMult);
         }
 
@@ -475,7 +481,7 @@ public class FontHelper
 
     private static long convertFloatsToLong(float a, float b)
     {
-        return (((long)Float.floatToIntBits(a)) << 32) | (Float.floatToIntBits(b) & 0xffffffffL);
+        return (((long) Float.floatToIntBits(a)) << 32) | (Float.floatToIntBits(b) & 0xffffffffL);
     }
 
     private static long convertShortsToLong(int a, int b, int c, int d)

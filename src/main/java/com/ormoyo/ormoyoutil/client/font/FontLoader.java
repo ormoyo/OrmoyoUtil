@@ -9,7 +9,14 @@ import com.ormoyo.ormoyoutil.client.font.FontHelper.Glyph;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.NativeImage;
 import net.minecraft.resources.IResource;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryBuilder;
 
 import javax.imageio.ImageIO;
 import java.awt.Font;
@@ -73,7 +80,8 @@ public class FontLoader
 
                 for (char c = Character.MIN_VALUE; c < Character.MAX_VALUE; c++)
                 {
-                    if (!f.canDisplay(c)) continue;
+                    if (!f.canDisplay(c))
+                        continue;
 
                     Character.UnicodeBlock characterBlock = Character.UnicodeBlock.of(c);
 
@@ -211,7 +219,10 @@ public class FontLoader
                     }
                     else
                     {
-                        if (y > maxY) maxY = y;
+                        if (y > maxY)
+                        {
+                            maxY = y;
+                        }
                     }
                 }
             }
@@ -241,6 +252,7 @@ public class FontLoader
                 int pixel = arr[off++];
                 if (pixel != 0)
                     isBlank = false;
+
                 if (!isBlank)
                 {
                     if (!yIsDefined)
@@ -252,5 +264,29 @@ public class FontLoader
             }
         }
         return minY;
+    }
+
+    static IForgeRegistry<com.ormoyo.ormoyoutil.client.font.Font> FONT_REGISTRY;
+
+    @Mod.EventBusSubscriber(modid = OrmoyoUtil.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
+    private static class EventHandler
+    {
+        @SubscribeEvent
+        public static void onNewRegistry(RegistryEvent.NewRegistry event)
+        {
+            FONT_REGISTRY = new RegistryBuilder<com.ormoyo.ormoyoutil.client.font.Font>()
+                    .setName(new ResourceLocation(OrmoyoUtil.MODID, "assets/ormoyoutil/font"))
+                    .setType(com.ormoyo.ormoyoutil.client.font.Font.class)
+                    .setIDRange(0, 2048)
+                    .disableSync()
+                    .create();
+        }
+
+        @SubscribeEvent
+        public static void registerFonts(RegistryEvent.Register<com.ormoyo.ormoyoutil.client.font.Font> event)
+        {
+            event.getRegistry().register(com.ormoyo.ormoyoutil.client.font.Font.ARIEL);
+            event.getRegistry().register(com.ormoyo.ormoyoutil.client.font.Font.MINECRAFT);
+        }
     }
 }
