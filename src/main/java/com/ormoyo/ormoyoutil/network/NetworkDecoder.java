@@ -8,7 +8,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This needs to have a {@link PacketBuffer} as a parameter, and it needs to return a new instance of the network message
+ * The method needs to have a {@link PacketBuffer} as a parameter, and it needs to return a new instance of the network message
  *
  * @see AbstractMessage#decode(PacketBuffer)
  */

@@ -92,6 +92,16 @@ public abstract class Ability
     {
     }
 
+    public boolean isServerAbility()
+    {
+        return AbilityEventHandler.SERVER_ABILITIES.contains(this.getEntry().getAbilityClass());
+    }
+
+    public boolean isClientAbility()
+    {
+        return AbilityEventHandler.CLIENT_ABILITIES.contains(this.getEntry().getAbilityClass());
+    }
+
     public PlayerEntity getOwner()
     {
         return this.owner;

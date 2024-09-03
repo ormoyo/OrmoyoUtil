@@ -13,6 +13,7 @@ import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.forgespi.language.ModFileScanData;
 import org.objectweb.asm.Type;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Comparator;
@@ -30,9 +31,9 @@ public class NetworkHandler
 
     private static final Map<Class<? extends AbstractMessage>, Function<PacketBuffer, AbstractMessage>> decoders = Maps.newHashMap();
 
+    @ParametersAreNonnullByDefault
     public static void injectNetworkWrapper(ModContainer mod, ModFileScanData scanData)
     {
-        if (scanData == null) return;
         List<ModFileScanData.AnnotationData> annotations = scanData.getAnnotations().stream()
                 .filter(annotationData -> Type.getType(NetworkChannel.class).equals(annotationData.getAnnotationType()) &&
                         Type.getType(mod.getMod().getClass()).equals(annotationData.getClassType()))
@@ -64,10 +65,9 @@ public class NetworkHandler
         });
     }
 
-
+    @ParametersAreNonnullByDefault
     public static <T extends AbstractMessage<T>> void registerNetworkMessages(ModFileScanData scanData)
     {
-        if (scanData == null) return;
         List<ModFileScanData.AnnotationData> messages = scanData.getAnnotations().stream()
                 .filter(annotationData -> Type.getType(NetworkMessage.class).equals(annotationData.getAnnotationType()))
                 .sorted(Comparator.comparing(a -> a.getClassType().getInternalName()))
@@ -80,7 +80,7 @@ public class NetworkHandler
         networkDecoders.forEach(annotation ->
         {
             List<Type> classes = (List<Type>) annotation.getAnnotationData().get("value");
-            String className = annotation.getClassType().getInternalName().replace('/', '.');
+            String className = annotation.getClassType().getClassName();
 
             String methodName = annotation.getMemberName().substring(0, annotation.getMemberName().indexOf('('));
 
@@ -93,7 +93,8 @@ public class NetworkHandler
                 {
                     try
                     {
-                        Class<?> cla = Class.forName(c.getInternalName().replace('/', '.'));
+                        Class<?> cla = Class.forName(c.getClassName());
+
                         NetworkHandler.decoders.put((Class<? extends AbstractMessage>) cla,
                                 ASMUtils.createMethodCallback(Function.class, method));
                     }
@@ -112,7 +113,7 @@ public class NetworkHandler
         messages.forEach(annotation ->
         {
             String modid = (String) annotation.getAnnotationData().get("modid");
-            String className = annotation.getClassType().getInternalName().replace('/', '.');
+            String className = annotation.getClassType().getClassName();
 
             if (!channels.containsKey(modid))
             {
