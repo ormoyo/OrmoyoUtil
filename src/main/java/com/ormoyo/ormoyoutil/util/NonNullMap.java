@@ -9,62 +9,62 @@ import java.util.function.Supplier;
 public class NonNullMap<K, V> extends HashMap<K, V>
 {
     private final Supplier<V> defaultValue;
-    private final boolean hasNullKeys;
+    private final boolean allowNullKeys;
 
     public NonNullMap(V defaultValue)
     {
         this(defaultValue, false);
     }
 
-    public NonNullMap(Supplier<V> defaultValueFunc)
+    public NonNullMap(Supplier<V> defaultValueSupplier)
     {
-        this(defaultValueFunc, false);
+        this(defaultValueSupplier, false);
     }
 
-    public NonNullMap(V defaultValue, boolean hasNullKeys)
+    public NonNullMap(V defaultValue, boolean allowNullKeys)
     {
         super();
 
         Preconditions.checkNotNull(defaultValue);
         this.defaultValue = () -> defaultValue;
 
-        this.hasNullKeys = hasNullKeys;
+        this.allowNullKeys = allowNullKeys;
     }
 
-    public NonNullMap(Supplier<V> defaultValueFunc, boolean hasNullKeys)
+    public NonNullMap(Supplier<V> valueSupplier, boolean allowNullKeys)
     {
         super();
 
-        Preconditions.checkNotNull(defaultValueFunc);
-        this.defaultValue = defaultValueFunc;
+        Preconditions.checkNotNull(valueSupplier);
+        this.defaultValue = valueSupplier;
 
-        this.hasNullKeys = hasNullKeys;
+        this.allowNullKeys = allowNullKeys;
     }
 
-    public NonNullMap(int initialCapacity, V defaultValue, boolean hasNullKeys)
+    public NonNullMap(int initialCapacity, V defaultValue, boolean allowNullKeys)
     {
         super(initialCapacity);
 
         Preconditions.checkNotNull(defaultValue);
         this.defaultValue = () -> defaultValue;
 
-        this.hasNullKeys = hasNullKeys;
+        this.allowNullKeys = allowNullKeys;
     }
 
-    public NonNullMap(int initialCapacity, Supplier<V> defaultValueFunc, boolean hasNullKeys)
+    public NonNullMap(int initialCapacity, Supplier<V> valueSupplier, boolean allowNullKeys)
     {
         super(initialCapacity);
 
-        Preconditions.checkNotNull(defaultValueFunc);
-        this.defaultValue = defaultValueFunc;
+        Preconditions.checkNotNull(valueSupplier);
+        this.defaultValue = valueSupplier;
 
-        this.hasNullKeys = hasNullKeys;
+        this.allowNullKeys = allowNullKeys;
     }
 
     @Override
     public V put(K key, V value)
     {
-        if (!hasNullKeys)
+        if (!this.allowNullKeys)
             Preconditions.checkNotNull(key);
 
         Preconditions.checkNotNull(value);
@@ -76,7 +76,7 @@ public class NonNullMap<K, V> extends HashMap<K, V>
     {
         m.forEach((k, v) ->
         {
-            if (!hasNullKeys)
+            if (!this.allowNullKeys)
                 Preconditions.checkNotNull(k);
 
             Preconditions.checkNotNull(v);
@@ -87,7 +87,7 @@ public class NonNullMap<K, V> extends HashMap<K, V>
     @Override
     public V putIfAbsent(K key, V value)
     {
-        if (!hasNullKeys)
+        if (!this.allowNullKeys)
             Preconditions.checkNotNull(key);
 
         Preconditions.checkNotNull(value);

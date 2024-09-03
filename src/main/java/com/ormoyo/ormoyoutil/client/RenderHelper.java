@@ -44,9 +44,7 @@ public class RenderHelper
         Vec2i size = null;
 
         if (!RenderHelper.locationToSize.containsKey(texture))
-        {
             size = loadTexture(texture);
-        }
 
         return size == null ? RenderHelper.locationToSize.getOrDefault(texture, Vec2i.NULL_VECTOR) : size;
     }
@@ -76,7 +74,9 @@ public class RenderHelper
             NativeImage image = dynamicTexture.getTextureData();
 
             if (image == null)
+            {
                 return null;
+            }
 
             Vec2i size = new Vec2i(image.getWidth(), image.getHeight());
             RenderHelper.locationToSize.put(location, size);
