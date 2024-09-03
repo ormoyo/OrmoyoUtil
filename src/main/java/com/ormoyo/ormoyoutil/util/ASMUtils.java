@@ -8,9 +8,11 @@ import org.objectweb.asm.commons.GeneratorAdapter;
 
 import javax.annotation.Nonnull;
 import java.lang.invoke.*;
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -24,7 +26,8 @@ public class ASMUtils
     private static final Map<Executable, Class<?>> CALLBACKS = Maps.newHashMap();
 
     @Nonnull
-    private static final MethodHandles.Lookup privateAccessLookup = Objects.requireNonNull(ObfuscationReflectionHelper.getPrivateValue(MethodHandles.Lookup.class, null, "IMPL_LOOKUP"));
+    @SuppressWarnings("ConstantConditions")
+    private static final MethodHandles.Lookup privateAccessLookup = ObfuscationReflectionHelper.getPrivateValue(MethodHandles.Lookup.class, null, "IMPL_LOOKUP");
 
     /**
      * This method is slow but returns a lambda of the chosen interface, that when used invokes the chosen method(even if it's private), almost as fast as calling the method normally
@@ -312,6 +315,27 @@ public class ASMUtils
         {
             return null;
         }
+    }
+
+    public static String getCallerClassName()
+    {
+        StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
+        String callerClassName = null;
+
+        for (int i = 1; i < stElements.length; i++)
+        {
+            StackTraceElement ste = stElements[i];
+
+            if (!ste.getClassName().equals(ASMUtils.class.getName()) && ste.getClassName().indexOf("java.lang.Thread") != 0)
+            {
+                if (callerClassName == null)
+                    callerClassName = ste.getClassName();
+                else if (!ste.getClassName().equals(callerClassName))
+                    return ste.getClassName();
+            }
+        }
+
+        return null;
     }
 
     private static String getUniqueName(Executable callback)
