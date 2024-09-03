@@ -24,11 +24,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityKeybindingBase extends Ability
 {
     static final BiMap<String, Integer> KEYBIND_IDS = HashBiMap.create();
-    final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(new MutableBoolean(), true);
+    final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(MutableBoolean::new, true);
 
     @OnlyIn(Dist.CLIENT)
     private KeyBinding mainKeybind;
@@ -51,11 +50,11 @@ public abstract class AbilityKeybindingBase extends Ability
         for (KeyBinding keybind : this.getKeybinds())
         {
             String keyName = this.getKeybindName(keybind);
-            if (this instanceof AbilityCooldown && ((AbilityCooldown)this).isOnCooldown(keyName))
+
+            if (this instanceof AbilityCooldown && ((AbilityCooldown) this).isOnCooldown(keyName))
                 continue;
 
             MutableBoolean hasBeenPressed = this.hasBeenPressed.get(keyName);
-
             if (keybind.isKeyDown() && !hasBeenPressed.booleanValue())
             {
                 this.onKeyPress(keyName);
@@ -74,7 +73,10 @@ public abstract class AbilityKeybindingBase extends Ability
      */
     public void onKeyPress(@Nullable String keybind)
     {
-        if (!this.owner.world.isRemote)
+        if (!this.getOwner().world.isRemote)
+            return;
+
+        if (!this.isServerAbility())
             return;
 
         OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageOnAbilityKey(this.getEntry(), keybind, true));
@@ -85,13 +87,16 @@ public abstract class AbilityKeybindingBase extends Ability
      */
     public void onKeyRelease(@Nullable String keybind)
     {
-        if (!this.owner.world.isRemote)
+        if (!this.getOwner().world.isRemote)
+            return;
+
+        if (!this.isServerAbility())
             return;
 
         OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageOnAbilityKey(this.getEntry(), keybind, false));
     }
 
-    public Collection<String> getKeys()
+    public final Collection<String> getKeys()
     {
         return Collections.unmodifiableSet(this.hasBeenPressed.keySet());
     }

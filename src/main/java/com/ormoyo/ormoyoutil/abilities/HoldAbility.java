@@ -1,7 +1,7 @@
 package com.ormoyo.ormoyoutil.abilities;
 
 import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
-import com.ormoyo.ormoyoutil.ability.IAbilityHolder;
+import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
@@ -10,13 +10,19 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class HoldAbility extends AbilityCooldown
 {
-    private final Map<String, MutableBoolean> isHolding = new NonNullMap<>(this.getKeybinds().length, new MutableBoolean(), true);
+    private final Map<String, MutableBoolean> isHolding = new NonNullMap<>(this.getKeybinds().length, MutableBoolean::new, true);
 
-    public HoldAbility(IAbilityHolder owner)
+    public HoldAbility(AbilityHolder owner)
     {
         super(owner);
     }
 
+    /**
+     * Called when the ability is activated (Usually by a press).
+     * @param keybind The specific keybinding being pressed (nykk
+     * @return If the ability has succeeded:<br><strong>success</strong> - the method would be kept called every tick until release, by then the cooldown will start.<br><strong>failure</strong> - the cooldown stays off.
+     * @implNote <strong>warning</strong> - the returned value will only be evaluated when the player initially presses the keybinding (not on hold)
+     */
     public abstract boolean hold(String keybind);
 
     @Override
@@ -24,12 +30,8 @@ public abstract class HoldAbility extends AbilityCooldown
     {
         super.tick();
         for (String keybind : this.isHolding.keySet())
-        {
             if (this.isHolding.get(keybind).booleanValue() && !this.isOnCooldown())
-            {
                 this.hold(keybind);
-            }
-        }
     }
 
     @Override

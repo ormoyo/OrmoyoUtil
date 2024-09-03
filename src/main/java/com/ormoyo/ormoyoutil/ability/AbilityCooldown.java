@@ -10,10 +10,10 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityCooldown extends AbilityKeybindingBase
 {
-    private final Map<String, MutableInt> cooldownTicks = new NonNullMap<>(new MutableInt(), true);
-    private final Map<String, MutableBoolean> isOnCooldown = new NonNullMap<>(new MutableBoolean(), true);
+    private final Map<String, MutableInt> cooldownTicks = new NonNullMap<>(MutableInt::new, true);
+    private final Map<String, MutableBoolean> isOnCooldown = new NonNullMap<>(MutableBoolean::new, true);
 
-    public AbilityCooldown(IAbilityHolder owner)
+    public AbilityCooldown(AbilityHolder owner)
     {
         super(owner);
     }
@@ -21,16 +21,10 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     @Override
     public void tick()
     {
+        super.tick();
         for (String keybind : this.getKeys())
         {
             MutableBoolean isOnCooldown = this.isOnCooldown.get(keybind);
-
-            if (!isOnCooldown.booleanValue())
-            {
-                super.tick();
-                continue;
-            }
-
             MutableInt cooldownTick = this.cooldownTicks.get(keybind);
 
             cooldownTick.increment();

@@ -17,8 +17,13 @@ public abstract class ToggleAbility extends AbilityCooldown
         super(owner);
     }
 
-    public abstract boolean toggle(String keybind);
-    public abstract boolean untoggle(String keybind);
+    /**
+     * Called when the ability is toggled (Usually by a press).
+     * @param keybind The specific keybinding being pressed
+     * @param toggled The current toggle state
+     * @return If the toggle has succeeded:<br><strong>success</strong> - the cooldown starts and the toggled state is flipped.<br><strong>failure</strong> - the cooldown stays off and the toggled state stays as it is.
+     */
+    public abstract boolean toggle(String keybind, boolean toggled);
 
     @Override
     public void onKeyPress(String keybind)
@@ -26,16 +31,11 @@ public abstract class ToggleAbility extends AbilityCooldown
         super.onKeyPress(keybind);
 
         MutableBoolean isToggled = this.isToggled.get(keybind);
-        if (!isToggled.booleanValue())
+        if (this.toggle(keybind, isToggled.booleanValue()))
         {
-            isToggled.setValue(this.toggle(keybind));
-            return;
-        }
-
-        if (this.untoggle(keybind))
-        {
-            isToggled.setFalse();
-            this.setIsOnCooldown(keybind, true);
+            isToggled.setValue(!isToggled.booleanValue());
+            if (!isToggled.booleanValue())
+                this.setIsOnCooldown(keybind, true);
         }
     }
 
