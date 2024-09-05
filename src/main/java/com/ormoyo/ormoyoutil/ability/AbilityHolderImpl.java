@@ -72,7 +72,7 @@ public class AbilityHolderImpl implements AbilityHolder
                 return false;
 
             if (EffectiveSide.get().isServer())
-                OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(this::getPlayer), new MessageUnlockAbility(this, ability.getEntry()));
+                OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(this::asPlayer), new MessageUnlockAbility(this, ability.getEntry()));
 
             ability.onUnlock();
         }
@@ -96,7 +96,7 @@ public class AbilityHolderImpl implements AbilityHolder
     }
 
     @Override
-    public PlayerEntity getPlayer()
+    public PlayerEntity asPlayer()
     {
         return this.player;
     }

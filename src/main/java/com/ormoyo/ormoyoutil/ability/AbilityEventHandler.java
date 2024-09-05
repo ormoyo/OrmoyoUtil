@@ -286,7 +286,6 @@ class AbilityEventHandler
         }
 
         static AbilityKeybindingBase currentConstruct;
-
         public static void onKeybindBaseConstruct()
         {
             if (currentConstruct == null)

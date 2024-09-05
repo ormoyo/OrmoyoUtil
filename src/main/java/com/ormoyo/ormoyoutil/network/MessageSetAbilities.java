@@ -22,7 +22,7 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
 
     public MessageSetAbilities(AbilityHolder targetedPlayer, Collection<AbilityEntry> entries)
     {
-        this(targetedPlayer.getPlayer().getEntityId(), entries);
+        this(targetedPlayer.asPlayer().getEntityId(), entries);
     }
 
     private MessageSetAbilities(int targetedPlayerId, Collection<AbilityEntry> entries)

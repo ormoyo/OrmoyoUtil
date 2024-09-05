@@ -17,5 +17,5 @@ public interface AbilityHolder
 
     void setAbilities(Collection<Ability> abilities);
 
-    PlayerEntity getPlayer();
+    PlayerEntity asPlayer();
 }

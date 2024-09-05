@@ -20,7 +20,7 @@ public class MessageUnlockAbility extends AbstractMessage<MessageUnlockAbility>
 
     public MessageUnlockAbility(AbilityHolder holder, AbilityEntry abilityEntry)
     {
-        this(holder.getPlayer().getEntityId(), abilityEntry);
+        this(holder.asPlayer().getEntityId(), abilityEntry);
     }
 
     private MessageUnlockAbility(int targetedPlayerId, AbilityEntry abilityEntry)

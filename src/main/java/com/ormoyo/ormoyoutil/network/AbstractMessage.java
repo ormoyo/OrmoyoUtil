@@ -64,7 +64,6 @@ public abstract class AbstractMessage<T extends AbstractMessage<T>>
             return;
 
         NetworkEvent.Context context = ctx.get();
-
         contextTuple = new Tuple<>(message, context);
 
         DistExecutor.safeRunWhenOn(Dist.DEDICATED_SERVER, () -> MessageMethods.ServerMethods::onServerMessage);

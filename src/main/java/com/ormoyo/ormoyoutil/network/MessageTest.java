@@ -14,7 +14,7 @@ public class MessageTest extends AbstractMessage<MessageTest>
 
     public MessageTest(AbilityHolder holder)
     {
-        this.playerId = holder.getPlayer().getEntityId();
+        this.playerId = holder.asPlayer().getEntityId();
     }
 
     public MessageTest(int playerId)

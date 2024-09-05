@@ -69,7 +69,7 @@ public class AbilityHolderStorage implements Capability.IStorage<AbilityHolder>
                 continue;
             }
 
-            Ability ability = entry.newInstance(Ability.getAbilityHolder(instance.getPlayer()));
+            Ability ability = entry.newInstance(instance);
             ability.readFromNBT(abilityNBT);
 
             abilities.add(ability);

@@ -21,7 +21,7 @@ public abstract class Ability
 {
     public Ability(AbilityHolder owner)
     {
-        this.owner = owner != null ? owner.getPlayer() : null;
+        this.owner = owner != null ? owner.asPlayer() : null;
         this.entry = Ability.getAbilityClassEntry(this.getClass());
 
         this.syncManager = new AbilitySyncManager(this);
