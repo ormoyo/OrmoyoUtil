@@ -6,6 +6,7 @@ import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent;
 
@@ -70,8 +71,11 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
         Consumer<Map<Integer, String>> func = null;
         try
         {
-            Method method = AbilityKeybindingBase.class.getDeclaredMethod("addKeybindIds", Map.class);
-            func = ASMUtils.createLambdaFromMethod(Consumer.class, method);
+            if (EffectiveSide.get().isServer())
+            {
+                Method method = AbilityKeybindingBase.class.getDeclaredMethod("addKeybindIds", Map.class);
+                func = ASMUtils.createLambdaFromMethod(Consumer.class, method);
+            }
         }
         catch (Exception e)
         {
