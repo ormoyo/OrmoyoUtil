@@ -86,7 +86,7 @@ class AbilityEventHandler
 
     static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
-    static Map<AbilityEntry, ITextComponent> ABILITY_DISPLAY_NAMES;
+    static Map<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
 
     static IForgeRegistry<AbilityEntry> ABILITY_REGISTRY;
     static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;

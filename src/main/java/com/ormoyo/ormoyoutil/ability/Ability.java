@@ -25,7 +25,7 @@ public abstract class Ability
         this.entry = Ability.getAbilityClassEntry(this.getClass());
 
         this.syncManager = new AbilitySyncManager(this);
-        AbilityEventHandler.ABILITY_DISPLAY_NAMES.put(this.getEntry(), this.getTranslatedName());
+        AbilityEventHandler.ABILITY_DISPLAY_NAMES.put(this.getClass(), this.getTranslatedName());
 
         this.abilityInit();
     }
