@@ -90,6 +90,13 @@ public abstract class Ability
 
     public void notifySyncManagerChange(AbilityDataParameter<?> parameter)
     {
+        if (parameter == Ability.IS_ENABLED)
+        {
+            if (this.isEnabled())
+                this.onAbilityEnabled();
+            else
+                this.onAbilityDisabled();
+        }
     }
 
     public boolean isServerAbility()
