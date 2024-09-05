@@ -234,7 +234,7 @@ class AbilityEventHandler
     }
 
     @SubscribeEvent
-    public void onRegisterCommands(RegisterCommandsEvent event)
+    public static void onRegisterCommands(RegisterCommandsEvent event)
     {
         AcquireAbilityCommand.register(event.getDispatcher());
         AbilitiesCommand.register(event.getDispatcher());
