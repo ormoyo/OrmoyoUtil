@@ -8,10 +8,7 @@ import org.objectweb.asm.commons.GeneratorAdapter;
 
 import javax.annotation.Nonnull;
 import java.lang.invoke.*;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Executable;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,14 +37,15 @@ public class ASMUtils
      * @return The interface who holds the lambda
      * @throws LambdaConversionException When the provided interface method doesn't match the provided method
      */
-
     public static <T> T createLambdaFromMethod(Class<T> lambdaInterface, Method method) throws LambdaConversionException
     {
         try
         {
             boolean isStatic = Modifier.isStatic(method.getModifiers());
+            if (!method.isAccessible())
+                method.setAccessible(true);
 
-            MethodHandles.Lookup lookup = privateAccessLookup.in(method.getDeclaringClass());
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
             Method interfaceMethod = getFunctionalInterfaceMethod(lambdaInterface);
 
             MethodType interfaceType = MethodType.methodType(interfaceMethod.getReturnType(), interfaceMethod.getParameterTypes());
@@ -92,7 +90,10 @@ public class ASMUtils
     {
         try
         {
-            MethodHandles.Lookup lookup = privateAccessLookup.in(constructor.getDeclaringClass());
+            if (!constructor.isAccessible())
+                constructor.setAccessible(true);
+
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
             Method interfaceMethod = getFunctionalInterfaceMethod(lambdaInterface);
 
             MethodType interfaceType = MethodType.methodType(interfaceMethod.getReturnType(), interfaceMethod.getParameterTypes());
@@ -144,9 +145,7 @@ public class ASMUtils
             }
 
             if (func != null)
-            {
                 return func;
-            }
         }
 
         throw new IllegalArgumentException(clazz + " isn't a functional interface");
