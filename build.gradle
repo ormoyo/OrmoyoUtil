@@ -13,7 +13,7 @@ plugins {
 }
 
 group = 'com.ormoyo'
-version = '1.16.5-0.4.4'
+version = '1.16.5-0.4.6'
 
 java {
     archivesBaseName = 'ormoyoutil'
