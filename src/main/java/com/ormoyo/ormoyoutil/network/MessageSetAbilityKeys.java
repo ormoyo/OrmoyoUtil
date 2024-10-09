@@ -1,8 +1,8 @@
 package com.ormoyo.ormoyoutil.network;
 
+import com.google.common.collect.BiMap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
-import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
@@ -10,19 +10,18 @@ import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 @SuppressWarnings("unchecked")
 @NetworkMessage(modid = OrmoyoUtil.MODID, direction = NetworkDirection.PLAY_TO_SERVER)
 public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys>
 {
-    private static final Consumer<Map<Integer, String>> ADD_KEY_IDS;
-    private final Map<Integer, String> keys;
+    private static final BiMap<String, Integer> KEYBIND_IDS;
+    private final Map<String, Integer> keys;
 
-    public MessageSetAbilityKeys(Map<Integer, String> keys)
+    public MessageSetAbilityKeys(Map<String, Integer> keys)
     {
         this.keys = keys;
     }
@@ -31,10 +30,10 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
     public void encode(PacketBuffer buffer)
     {
         buffer.writeVarInt(keys.size());
-        for (Map.Entry<Integer, String> entry : keys.entrySet())
+        for (Map.Entry<String, Integer> entry : keys.entrySet())
         {
-            buffer.writeVarInt(entry.getKey());
-            buffer.writeString(entry.getValue());
+            buffer.writeVarInt(entry.getValue());
+            buffer.writeString(entry.getKey());
         }
     }
 
@@ -42,14 +41,14 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
     public static MessageSetAbilityKeys decode(PacketBuffer buffer)
     {
         int size = buffer.readVarInt();
-        Map<Integer, String> map = new HashMap<>(size);
+        Map<String, Integer> map = new HashMap<>(size);
 
         for (int i = 0; i < size; i++)
         {
             int id = buffer.readVarInt();
             String desc = buffer.readString();
 
-            map.put(id, desc);
+            map.put(desc, id);
         }
 
         return new MessageSetAbilityKeys(map);
@@ -63,24 +62,28 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
     @Override
     public void onServerReceived(MinecraftServer server, PlayerEntity player, NetworkEvent.Context messageContext)
     {
-        ADD_KEY_IDS.accept(this.keys);
+        for (Map.Entry<String, Integer> entry : keys.entrySet())
+        {
+            KEYBIND_IDS.putIfAbsent(entry.getKey(), entry.getValue());
+        }
     }
 
     static
     {
-        Consumer<Map<Integer, String>> func = null;
+        BiMap<String, Integer> map = null;
         try
         {
             if (EffectiveSide.get().isServer())
             {
-                Method method = AbilityKeybindingBase.class.getDeclaredMethod("addKeybindIds", Map.class);
-                func = ASMUtils.createLambdaFromMethod(Consumer.class, method);
+                Field mapField = AbilityKeybindingBase.class.getDeclaredField("KEYBIND_IDS");
+                mapField.setAccessible(true);
+                map = (BiMap<String, Integer>) mapField.get(null);
             }
         }
         catch (Exception e)
         {
             e.printStackTrace();
         }
-        ADD_KEY_IDS = func;
+        KEYBIND_IDS = map;
     }
 }
