@@ -1,12 +1,10 @@
 package com.ormoyo.ormoyoutil.util;
 
 import com.google.common.collect.Maps;
-import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 
-import javax.annotation.Nonnull;
 import java.lang.invoke.*;
 import java.lang.reflect.*;
 import java.util.Map;
@@ -21,10 +19,25 @@ public class ASMUtils
     private static final ASMClassLoader LOADER = new ASMClassLoader();
 
     private static final Map<Executable, Class<?>> CALLBACKS = Maps.newHashMap();
+    private static final Map<Object, MethodHandle> cachedMethods = Maps.newHashMap();
 
-    @Nonnull
-    @SuppressWarnings("ConstantConditions")
-    private static final MethodHandles.Lookup privateAccessLookup = ObfuscationReflectionHelper.getPrivateValue(MethodHandles.Lookup.class, null, "IMPL_LOOKUP");
+    public static void cacheMethod(Object key, Method method)
+    {
+        MethodHandle lambada = ASMUtils.createHandleFromMethod(method);
+        cachedMethods.put(key, lambada);
+    }
+
+    public static void cacheConstructor(Object key, Constructor<?> constructor)
+    {
+        MethodHandle handle = ASMUtils.createHandleFromConstructor(constructor);
+        cachedMethods.put(key, handle);
+    }
+
+    public static <T> T invokeCachedMethod(Object key, Object... args) throws Throwable
+    {
+        MethodHandle handle = cachedMethods.get(key);
+        return (T) handle.invokeExact(args);
+    }
 
     /**
      * This method is slow but returns a lambda of the chosen interface, that when used invokes the chosen method(even if it's private), almost as fast as calling the method normally
@@ -334,6 +347,38 @@ public class ASMUtils
             }
         }
 
+        return null;
+    }
+
+    private static <T> MethodHandle createHandleFromMethod(Method method)
+    {
+        try
+        {
+            if (!method.isAccessible())
+                method.setAccessible(true);
+
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            return lookup.unreflect(method);
+        } catch (IllegalAccessException e)
+        {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static <T> MethodHandle createHandleFromConstructor(Constructor<?> constructor)
+    {
+        try
+        {
+            if (!constructor.isAccessible())
+                constructor.setAccessible(true);
+
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            return lookup.unreflectConstructor(constructor);
+        } catch (IllegalAccessException e)
+        {
+            e.printStackTrace();
+        }
         return null;
     }
 
