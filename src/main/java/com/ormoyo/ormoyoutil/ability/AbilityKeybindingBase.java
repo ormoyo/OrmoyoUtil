@@ -191,12 +191,4 @@ public abstract class AbilityKeybindingBase extends Ability
     {
         return KEYBIND_IDS.inverse().get(id);
     }
-
-    private static void addKeybindIds(Map<Integer, String> keys)
-    {
-        for (Map.Entry<Integer, String> entry : keys.entrySet())
-        {
-            KEYBIND_IDS.inverse().putIfAbsent(entry.getKey(), entry.getValue());
-        }
-    }
 }
