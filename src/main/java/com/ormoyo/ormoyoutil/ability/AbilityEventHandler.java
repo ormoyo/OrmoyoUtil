@@ -310,7 +310,10 @@ class AbilityEventHandler
                 AbilityKeybindingBase.KEYBIND_IDS.put(keybind.getKeyDescription(), AbilityKeybindingBase.KEYBIND_IDS.size() + 1);
             }
 
-            OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageSetAbilityKeys(AbilityKeybindingBase.KEYBIND_IDS.inverse()));
+            if (AbilityKeybindingBase.KEYBIND_IDS.isEmpty())
+                return;
+
+            OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageSetAbilityKeys(AbilityKeybindingBase.KEYBIND_IDS));
             currentConstruct = null;
         }
     }
@@ -367,7 +370,7 @@ class AbilityEventHandler
                         SERVER_ABILITIES.add(clazz);
                         CLIENT_ABILITIES.add(clazz);
 
-                        return;
+                        continue;
                     }
 
                     CLIENT_ABILITIES.add(clazz);
@@ -383,11 +386,11 @@ class AbilityEventHandler
                 if (holders == null)
                 {
                     SERVER_ABILITIES.add(clazz);
-                    return;
+                    continue;
                 }
 
                 if (holders.stream().noneMatch(side -> Dist.valueOf(side.getValue()) == FMLEnvironment.dist))
-                    return;
+                    continue;
 
                 SERVER_ABILITIES.add(clazz);
             }
