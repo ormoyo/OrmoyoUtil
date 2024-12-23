@@ -9,7 +9,21 @@ public class AbilityEventEntry extends ForgeRegistryEntry<AbilityEventEntry>
     private final Class<? extends Event> event;
     private final AbilityEventPredicate<? extends Event> predicate;
 
+    public <T extends Event> AbilityEventEntry(Class<T> event, AbilityEventPredicate<T> predicate)
+    {
+        this.event = event;
+        this.predicate = predicate;
+    }
+
     public <T extends Event> AbilityEventEntry(ResourceLocation name, Class<T> event, AbilityEventPredicate<T> predicate)
+    {
+        this.setRegistryName(name);
+
+        this.event = event;
+        this.predicate = predicate;
+    }
+
+    public <T extends Event> AbilityEventEntry(String name, Class<T> event, AbilityEventPredicate<T> predicate)
     {
         this.setRegistryName(name);
 

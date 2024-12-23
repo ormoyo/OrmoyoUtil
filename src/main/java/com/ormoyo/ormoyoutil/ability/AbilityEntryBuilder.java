@@ -15,7 +15,7 @@ public final class AbilityEntryBuilder
 
     private int level;
 
-    public static <T extends Ability> AbilityEntryBuilder create()
+    public static AbilityEntryBuilder create()
     {
         return new AbilityEntryBuilder();
     }
@@ -70,6 +70,9 @@ public final class AbilityEntryBuilder
 
     public AbilityEntry build()
     {
+        if (this.location == null)
+            return new AbilityEntry(this.clazz, this.level, this.condition, this.conditionCheckingEvents);
+
         return new AbilityEntry(this.location, this.clazz, this.level, this.condition, this.conditionCheckingEvents);
     }
 }

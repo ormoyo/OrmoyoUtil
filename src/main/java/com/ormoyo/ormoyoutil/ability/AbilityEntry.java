@@ -21,6 +21,32 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     private final Predicate<AbilityHolder> condition;
     private final int level;
 
+    public AbilityEntry(Class<? extends Ability> clazz)
+    {
+        this(clazz, null);
+    }
+
+    public AbilityEntry(Class<? extends Ability> clazz, int level)
+    {
+        this(clazz, level, null);
+    }
+
+    public AbilityEntry(Class<? extends Ability> clazz, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
+    {
+        this(clazz, 0, condition, conditionCheckingEvents);
+    }
+
+    @SafeVarargs
+    public AbilityEntry(Class<? extends Ability> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
+    {
+        this.clazz = clazz;
+
+        this.condition = condition;
+        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
+
+        this.level = Math.max(level, 0);
+    }
+
     public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz)
     {
         this(name, clazz, null);
