@@ -11,6 +11,7 @@ import com.ormoyo.ormoyoutil.ability.event.AbilityEventListener;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventPredicate;
 import com.ormoyo.ormoyoutil.ability.util.ClientAbility;
 import com.ormoyo.ormoyoutil.ability.util.ServerAbility;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.capability.AbilityHolderProvider;
 import com.ormoyo.ormoyoutil.commands.AbilitiesCommand;
 import com.ormoyo.ormoyoutil.commands.AcquireAbilityCommand;
@@ -76,7 +77,7 @@ import java.util.stream.Stream;
 class AbilityEventHandler
 {
     @CapabilityInject(AbilityHolder.class)
-    public static final Capability<AbilityHolder> ABILITY_HOLDER_CAPABILITY;
+    public static final Capability<AbilityHolder> ABILITY_HOLDER_CAPABILITY = null;
 
     private static final Table<AbilityEntry, Class<? extends Event>, AbilityEventListener> LISTENERS;
     private static final BiConsumer<Event, PlayerEntity> EVENT_ACTION;

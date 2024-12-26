@@ -3,7 +3,6 @@ package com.ormoyo.ormoyoutil.capability;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.INBT;
 import net.minecraft.nbt.ListNBT;

@@ -1,8 +1,6 @@
 package com.ormoyo.ormoyoutil.capability;
 
 import com.ormoyo.ormoyoutil.ability.Ability;
-import com.ormoyo.ormoyoutil.ability.AbilityHolderImpl;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.INBT;
 import net.minecraft.util.Direction;

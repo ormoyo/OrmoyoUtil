@@ -1,5 +1,6 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;

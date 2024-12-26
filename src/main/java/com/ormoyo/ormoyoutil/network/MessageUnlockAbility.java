@@ -3,7 +3,7 @@ package com.ormoyo.ormoyoutil.network;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;

@@ -82,7 +82,7 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
         }
         catch (Exception e)
         {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         KEYBIND_IDS = map;
     }

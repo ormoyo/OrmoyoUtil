@@ -10,7 +10,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.command.arguments.EntityArgument;

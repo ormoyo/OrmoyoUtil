@@ -1,7 +1,7 @@
 package com.ormoyo.ormoyoutil.abilities;
 
 import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 

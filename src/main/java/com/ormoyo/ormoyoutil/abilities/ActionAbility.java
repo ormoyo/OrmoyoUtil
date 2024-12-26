@@ -1,6 +1,6 @@
 package com.ormoyo.ormoyoutil.abilities;
 
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.ability.AbilityCooldown;
 
 public abstract class ActionAbility extends AbilityCooldown

@@ -3,7 +3,7 @@ package com.ormoyo.ormoyoutil.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.ormoyo.ormoyoutil.ability.Ability;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.Commands;
 import net.minecraft.util.text.TranslationTextComponent;

@@ -1,5 +1,6 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
 

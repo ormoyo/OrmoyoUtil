@@ -2,6 +2,7 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventEntry;
 import com.ormoyo.ormoyoutil.ability.util.AbilityMessage;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
 import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
 import net.minecraft.entity.player.PlayerEntity;
@@ -19,6 +20,9 @@ import java.util.Objects;
 
 public abstract class Ability
 {
+    @SuppressWarnings("unused")
+    private static final Class<?> ABILITY_EVENT_HANDLER_CLASS = AbilityEventHandler.class;
+
     public Ability(AbilityHolder owner)
     {
         this.owner = owner != null ? owner.asPlayer() : null;

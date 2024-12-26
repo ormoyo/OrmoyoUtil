@@ -1,5 +1,7 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.ormoyo.ormoyoutil.OrmoyoUtil;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.registries.ForgeRegistryEntry;
@@ -109,7 +111,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
         }
         catch (IllegalArgumentException | SecurityException e)
         {
-            e.printStackTrace();
+            OrmoyoUtil.LOGGER.catching(e);
         }
         return null;
     }
@@ -153,6 +155,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
     @Override
     public int hashCode()
     {
-        return Objects.hash(this.getRegistryName());
+        ResourceLocation name = this.getRegistryName();
+        return name != null ? name.hashCode() : 0;
     }
 }

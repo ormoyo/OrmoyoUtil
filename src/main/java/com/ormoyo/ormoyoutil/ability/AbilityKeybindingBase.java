@@ -3,6 +3,7 @@ package com.ormoyo.ormoyoutil.ability;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.network.MessageOnAbilityKey;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import net.minecraft.client.Minecraft;

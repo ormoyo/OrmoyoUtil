@@ -1,8 +1,9 @@
-package com.ormoyo.ormoyoutil.ability;
+package com.ormoyo.ormoyoutil.capability;
 
 import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
-import com.ormoyo.ormoyoutil.capability.AbilityHolderStorage;
+import com.ormoyo.ormoyoutil.ability.Ability;
+import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import com.ormoyo.ormoyoutil.event.AbilityEvents;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.MessageUnlockAbility;
@@ -13,12 +14,15 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.PacketDistributor;
 
+import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
 public class AbilityHolderImpl implements AbilityHolder
 {
+    private static final Class<?> ABILITY_EVENT_HANDLER_CLASS;
+
     protected final Map<Class<? extends Ability>, Ability> abilities = Maps.newHashMap();
     protected final PlayerEntity player;
 
@@ -65,11 +69,14 @@ public class AbilityHolderImpl implements AbilityHolder
     {
         Ability ability = entry.newInstance(this);
 
-        boolean isUnlocked = this.getAbility(ability.getClass()) == null && this.abilities.put(entry.getAbilityClass(), ability) == null;
+        boolean isUnlocked = this.unlockAbilityInternal(ability);
         if (isUnlocked)
         {
             if (MinecraftForge.EVENT_BUS.post(new AbilityEvents.OnAbilityUnlockedEvent(ability)))
+            {
+                this.abilities.remove(ability.getClass());
                 return false;
+            }
 
             if (EffectiveSide.get().isServer())
                 OrmoyoUtil.NETWORK_CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(this::asPlayer), new MessageUnlockAbility(this, ability.getEntry()));
@@ -80,24 +87,47 @@ public class AbilityHolderImpl implements AbilityHolder
         return isUnlocked;
     }
 
+    private boolean unlockAbilityInternal(Ability ability)
+    {
+        return this.getAbility(ability.getClass()) == null && this.abilities.put(ability.getClass(), ability) == null;
+    }
+
     @Override
     public void setAbilities(Collection<Ability> abilities)
     {
         String caller = ASMUtils.getCallerClassName();
 
-        if (!AbilityHolderStorage.class.getName().equals(caller) &&
-                !AbilityEventHandler.class.getName().equals(caller) &&
+        if (caller != null &&
+                !ABILITY_EVENT_HANDLER_CLASS.getName().equals(caller) &&
+                !AbilityHolderStorage.class.getName().equals(caller) &&
                 !MessageSetAbilities.class.getName().equals(caller))
             throw new IllegalStateException("This method can only be called by specific classes");
 
 
         this.abilities.clear();
-        abilities.forEach(ability -> this.abilities.put(ability.getEntry().getAbilityClass(), ability));
+        abilities.forEach(this::unlockAbilityInternal);
     }
 
     @Override
     public PlayerEntity asPlayer()
     {
         return this.player;
+    }
+
+    static
+    {
+        Class<?> clazz;
+
+        try
+        {
+            Field field = Ability.class.getDeclaredField("ABILITY_EVENT_HANDLER_CLASS");
+            field.setAccessible(true);
+            clazz = (Class<?>) field.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e)
+        {
+            throw new RuntimeException(e);
+        }
+
+        ABILITY_EVENT_HANDLER_CLASS = clazz;
     }
 }

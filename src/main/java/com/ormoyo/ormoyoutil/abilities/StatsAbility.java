@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.AbilityHolder;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.event.AbilityEvents.StatsEvents.CalculateEntityExp;
 import com.ormoyo.ormoyoutil.event.AbilityEvents.StatsEvents.LevelUpEvent;
 import com.ormoyo.ormoyoutil.network.datasync.AbilityDataParameter;
