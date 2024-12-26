@@ -1,13 +1,11 @@
 package com.ormoyo.ormoyoutil.ability;
 
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventEntry;
-import com.ormoyo.ormoyoutil.ability.event.AbilityEventListenerImpl;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventListener;
+import com.ormoyo.ormoyoutil.ability.event.AbilityEventListenerImpl;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventPredicate;
 import com.ormoyo.ormoyoutil.ability.util.ClientAbility;
 import com.ormoyo.ormoyoutil.ability.util.ServerAbility;
@@ -20,12 +18,12 @@ import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilityKeys;
 import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.player.AbstractClientPlayerEntity;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
-import net.minecraft.server.management.PlayerList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
@@ -62,12 +60,15 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryModifiable;
 import net.minecraftforge.registries.RegistryBuilder;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.codehaus.plexus.util.FastMap;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,8 +80,7 @@ class AbilityEventHandler
     @CapabilityInject(AbilityHolder.class)
     public static final Capability<AbilityHolder> ABILITY_HOLDER_CAPABILITY = null;
 
-    private static final Table<AbilityEntry, Class<? extends Event>, AbilityEventListener> LISTENERS;
-    private static final BiConsumer<Event, PlayerEntity> EVENT_ACTION;
+    private static final FastMap<Class<? extends Event>, AbilityEventList> LISTENERS = new FastMap<>(128);
 
     static final Collection<Class<? extends Ability>> CLIENT_ABILITIES = Sets.newHashSet();
     static final Collection<Class<? extends Ability>> SERVER_ABILITIES = Sets.newHashSet();
@@ -108,27 +108,20 @@ class AbilityEventHandler
 
                 for (Method method : eventMethods)
                 {
-                    Class<?>[] parameterTypes = method.getParameterTypes();
-                    if (parameterTypes.length != 1)
-                    {
-                        throw new IllegalArgumentException(
-                                "Ability method " + method + " has @SubscribeEvent annotation, but requires " + parameterTypes.length +
-                                        " arguments. Event handler methods must require a single argument."
-                        );
-                    }
-
-                    Class<?> eventT = parameterTypes[0];
+                    Class<?> eventT = AbilityEventHandler.getEventParameter(method);
 
                     if (!Event.class.isAssignableFrom(eventT))
                         throw new IllegalArgumentException("Ability method " + method + " has @SubscribeEvent annotation, but takes a argument that is not an Event " + eventT);
 
                     Class<? extends Event> eventType = (Class<? extends Event>) eventT;
+                    AbilityEventList list = AbilityEventHandler.getListenerList(eventType);
+
                     for (AbilityEventEntry eventEntry : Ability.getAbilityEventRegistry().getValues())
                     {
                         if (eventType.isAssignableFrom(eventEntry.getEventClass()) || eventEntry.getEventClass().isAssignableFrom(eventType))
                         {
-                            LISTENERS.cellSet().removeIf(cell -> cell.getColumnKey().isAssignableFrom(eventType) && cell.getValue().getMethod().equals(method));
-                            LISTENERS.put(entry, eventType, new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType)));
+                            AbilityEventListenerImpl listener = new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType));
+                            list.register(listener.getPriority(), listener);
                         }
                     }
                 }
@@ -138,6 +131,21 @@ class AbilityEventHandler
         {
             OrmoyoUtil.LOGGER.error("A critical error has occurred by reflection on init");
         }
+    }
+
+    private static Class<?> getEventParameter(Method method)
+    {
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        if (parameterTypes.length != 1)
+        {
+            throw new IllegalArgumentException(
+                    "Ability method " + method + " has @SubscribeEvent annotation, but requires " + parameterTypes.length +
+                            " arguments. Event handler methods must require a single argument."
+            );
+        }
+
+        Class<?> eventT = parameterTypes[0];
+        return eventT;
     }
 
     @SubscribeEvent
@@ -179,7 +187,8 @@ class AbilityEventHandler
                         AbilityEventHandler.CLIENT_ABILITIES.contains(entry.getAbilityClass()))
                 .collect(Collectors.toList());
 
-        abilityHolder.setAbilities(entries.stream()
+        abilityHolder.setAbilities(entries
+                .stream()
                 .map(entry -> entry.newInstance(abilityHolder))
                 .collect(Collectors.toList()));
 
@@ -244,24 +253,22 @@ class AbilityEventHandler
     @Mod.EventBusSubscriber(modid = OrmoyoUtil.MODID, value = Dist.DEDICATED_SERVER)
     private static class ServerEventHandler
     {
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void onEvent(Event event)
         {
             if (ServerLifecycleHooks.getCurrentServer() == null)
                 return;
 
-            PlayerList list = ServerLifecycleHooks.getCurrentServer().getPlayerList();
-            for (ServerPlayerEntity player : list.getPlayers())
-            {
-                EVENT_ACTION.accept(event, player);
-            }
+            List<ServerPlayerEntity> players = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers();
+            for (PlayerEntity player : players)
+                AbilityEventHandler.handleEvent(event, player);
         }
     }
 
     @Mod.EventBusSubscriber(modid = OrmoyoUtil.MODID, value = Dist.CLIENT)
     static class ClientEventHandler
     {
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void onEvent(Event event)
         {
             if (EffectiveSide.get().isServer())
@@ -269,9 +276,9 @@ class AbilityEventHandler
                 if (ServerLifecycleHooks.getCurrentServer() == null)
                     return;
 
-                PlayerList list = ServerLifecycleHooks.getCurrentServer().getPlayerList();
-                for (ServerPlayerEntity player : list.getPlayers())
-                    EVENT_ACTION.accept(event, player);
+                List<ServerPlayerEntity> players = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers();
+                for (PlayerEntity player : players)
+                    AbilityEventHandler.handleEvent(event, player);
 
                 return;
             }
@@ -279,10 +286,10 @@ class AbilityEventHandler
             if (Minecraft.getInstance().world == null)
                 return;
 
-            List<? extends PlayerEntity> players = Minecraft.getInstance().world.getPlayers();
+            List<AbstractClientPlayerEntity> players = Minecraft.getInstance().world.getPlayers();
             for (PlayerEntity player : players)
             {
-                EVENT_ACTION.accept(event, player);
+                AbilityEventHandler.handleEvent(event, player);
             }
         }
 
@@ -337,7 +344,7 @@ class AbilityEventHandler
             event.enqueueWork(() ->
             {
                 AbilityEventHandler.onInit();
-                ABILITY_DISPLAY_NAMES = new HashMap<>(ABILITY_REGISTRY.getEntries().size());
+                ABILITY_DISPLAY_NAMES = new IdentityHashMap<>(ABILITY_REGISTRY.getEntries().size());
             });
         }
 
@@ -561,47 +568,78 @@ class AbilityEventHandler
         }
     }
 
-    static
+    private static void handleEvent(Event event, PlayerEntity player)
     {
-        ABILITY_HOLDER_CAPABILITY = null;
+        AbilityHolder abilityHolder = Ability.getAbilityHolder(player);
+        if (abilityHolder == null)
+            return;
 
-        LISTENERS = HashBasedTable.create();
-        EVENT_ACTION = (event, player) ->
+        AbilityEventList listenerList = AbilityEventHandler.getListenerList(event.getClass());
+        for (Ability ability : abilityHolder.getAbilities())
         {
-            AbilityHolder abilityHolder = Ability.getAbilityHolder(player);
+             Collection<AbilityEventListener> listeners = listenerList.getListeners(ability.getEntry());
+             for (AbilityEventListener listener : listeners)
+             {
+                 if (!ability.isEnabled())
+                     break;
 
-            if (abilityHolder == null)
-                return;
+                 if (!listener.getEventPredicate().test(ability, event))
+                     continue;
 
-            for (Ability ability : abilityHolder.getAbilities())
+                 listener.invoke(ability, event);
+             }
+        }
+
+        if (!(event instanceof PlayerEvent))
+            return;
+
+        for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
+        {
+            for (Class<? extends Event> clazz : entry.getConditionCheckingEvents())
             {
-                if (!ability.isEnabled())
-                    continue;
-
-                AbilityEventListener listener = LISTENERS.get(ability.getEntry(), event.getClass());
-
-                if (listener == null)
-                    continue;
-
-                if (!listener.getEventPredicate().test(ability, event))
-                    continue;
-
-                listener.invoke(ability, event);
-            }
-
-            if (!(event instanceof PlayerEvent))
-                return;
-
-            for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
-            {
-                for (Class<? extends Event> clazz : entry.getConditionCheckingEvents())
+                if (clazz == event.getClass() && entry.getCondition().test(abilityHolder))
                 {
-                    if (clazz == event.getClass() && entry.getCondition().test(abilityHolder))
-                    {
-                        abilityHolder.unlockAbility(entry);
-                    }
+                    abilityHolder.unlockAbility(entry);
                 }
             }
-        };
+        }
+    }
+
+    private static final ReadWriteLock lock = new ReentrantReadWriteLock(true);
+    private static AbilityEventList getListenerList(Class<? extends Event> eventClass)
+    {
+        Lock readLock = lock.readLock();
+
+        readLock.lock();
+        AbilityEventList listenerList = LISTENERS.get(eventClass);
+        readLock.unlock();
+
+        if (listenerList == null)
+        {
+            listenerList = computeEventList(eventClass);
+            Lock writeLock = lock.writeLock();
+
+            writeLock.lock();
+            readLock.lock();
+
+            LISTENERS.putIfAbsent(eventClass, listenerList);
+
+            listenerList = LISTENERS.get(eventClass);
+
+            readLock.unlock();
+            writeLock.unlock();
+        }
+        return listenerList;
+    }
+
+    private static AbilityEventList computeEventList(Class<? extends Event> eventClass)
+    {
+        if (eventClass == Event.class)
+            return new AbilityEventList();
+
+        Class<? extends Event> superclass = (Class<? extends Event>) eventClass.getSuperclass();
+        AbilityEventList parentList = AbilityEventHandler.getListenerList(superclass);
+
+        return new AbilityEventList(parentList);
     }
 }

@@ -5,6 +5,7 @@ import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IGenericEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.objectweb.asm.ClassWriter;
@@ -28,6 +29,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
     private static final ASMClassLoader LOADER = new ASMClassLoader();
     private static final Map<Method, Class<?>> cache = Maps.newHashMap();
 
+    private final AbilityEntry target;
     private final Method method;
     private final Class<T> eventClass;
     private final AbilityEventPredicate<T> predicate;
@@ -39,6 +41,8 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
 
     public AbilityEventListenerImpl(AbilityEntry target, Method method, Class<T> eventClass, AbilityEventPredicate<T> predicate, boolean isGeneric) throws ReflectiveOperationException
     {
+        this.target = target;
+
         this.handler = (AbilityEventListener<T>) createWrapper(method).getConstructor(ResourceLocation.class).newInstance(target.getRegistryName());
         this.subInfo = method.getAnnotation(SubscribeEvent.class);
 
@@ -88,6 +92,17 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
     }
 
     @Override
+    public AbilityEntry getAbilityEntry()
+    {
+        return this.target;
+    }
+
+    public EventPriority getPriority()
+    {
+        return this.subInfo.priority();
+    }
+
+    @Override
     public AbilityEventPredicate<T> getEventPredicate()
     {
         return this.predicate;
@@ -117,6 +132,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
 
         cw.visitSource(".dynamic", null);
         {
+            // ResourceLocation location
             cw.visitField(ACC_PUBLIC, "location", "Lnet/minecraft/util/ResourceLocation;", null, null).visitEnd();
         }
         {
@@ -154,7 +170,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
             mv.visitLabel(exception);
             mv.throwException(exceptionType, "Provided ability doesn't match entry");
 
-            //If equals - Calls callback method
+            // If equals - Calls callback method
             mv.visitLabel(end);
             mv.loadArg(0);
             mv.checkCast(instType);
