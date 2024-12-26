@@ -5,6 +5,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
 
+import javax.annotation.Nullable;
 import java.lang.invoke.*;
 import java.lang.reflect.*;
 import java.util.Map;
@@ -329,6 +330,7 @@ public class ASMUtils
         }
     }
 
+    @Nullable
     public static String getCallerClassName()
     {
         StackTraceElement[] stElements = Thread.currentThread().getStackTrace();

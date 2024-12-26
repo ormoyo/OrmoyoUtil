@@ -1,10 +1,7 @@
 package com.ormoyo.ormoyoutil.util;
 
-import com.google.common.collect.Sets;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.*;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 
@@ -25,6 +22,17 @@ public class EntityUtils
         return Math.atan2((a.getPosY() + a.getEyeHeight()) - (b.getPosY() + (b.getHeight() / 2.0F)), Math.sqrt(dx * dx + dz * dz)) * 180 / Math.PI;
     }
 
+    public static List<Entity> getEntitiesNearbyEntity(Entity entity, float radius)
+    {
+        return EntityUtils.getEntitiesNearbyEntity(Entity.class, entity, radius);
+    }
+
+    public static <T extends Entity> List<T> getEntitiesNearbyEntity(Class<T> entitiesType, Entity entity, float radius)
+    {
+        AxisAlignedBB bb = radius == 0 ? entity.getBoundingBox() : entity.getBoundingBox().grow(radius, radius, radius);
+        return entity.getEntityWorld().getEntitiesWithinAABB(entitiesType, bb, e -> e != entity);
+    }
+
     public static Entity raytraceEntityFromEntity(Entity entity, float reachDistance)
     {
         return EntityUtils.raytraceEntityFromEntity(Entity.class, entity, reachDistance);
@@ -38,8 +46,9 @@ public class EntityUtils
         if (result.entities.isEmpty())
             return null;
 
-        Optional<T> optional = result.entities.stream()
-                .filter(e -> e.getEntityId() != entity.getEntityId())
+        Optional<T> optional = result.entities
+                .stream()
+                .filter(e -> e != entity)
                 .min(Comparator.comparingDouble((Entity e) -> entity.getDistance(e)));
 
         return optional.orElse(null);
@@ -62,18 +71,17 @@ public class EntityUtils
 
     public static <T extends Entity> EntityRayResult<T> raytraceEntities(Class<T> entityClass, World world, RayTraceContext context)
     {
-        EntityRayResult<T> result = new EntityRayResult<>();
-        result.setBlockHit(world.rayTraceBlocks(context));
+        BlockRayTraceResult blockHit = world.rayTraceBlocks(context);
 
         double collidePosX;
         double collidePosY;
         double collidePosZ;
 
-        if (result.getBlockHit() != null)
+        if (blockHit.getType() != RayTraceResult.Type.MISS)
         {
-            collidePosX = result.getBlockHit().getHitVec().getX();
-            collidePosY = result.getBlockHit().getHitVec().getY();
-            collidePosZ = result.getBlockHit().getHitVec().getZ();
+            collidePosX = blockHit.getHitVec().getX();
+            collidePosY = blockHit.getHitVec().getY();
+            collidePosZ = blockHit.getHitVec().getZ();
         }
         else
         {
@@ -95,6 +103,8 @@ public class EntityUtils
                 Math.max(z, collidePosZ)).grow(1, 1, 1);
 
         List<T> entities = world.getEntitiesWithinAABB(entityClass, boundingBox);
+        EntityRayResult<T> result = new EntityRayResult<>(entities.size());
+
         for (T entity : entities)
         {
             float pad = entity.getCollisionBorderSize() + 0.5f;
@@ -120,7 +130,12 @@ public class EntityUtils
     public static class EntityRayResult<T extends Entity>
     {
         private RayTraceResult blockHit;
-        private final Set<T> entities = Sets.newHashSet();
+        private final List<T> entities;
+
+        public EntityRayResult(int capacity)
+        {
+            this.entities = new ArrayList<>(capacity);
+        }
 
         public RayTraceResult getBlockHit()
         {
@@ -139,7 +154,7 @@ public class EntityUtils
 
         public Collection<T> getEntityHits()
         {
-            return Collections.unmodifiableSet(this.entities);
+            return Collections.unmodifiableCollection(this.entities);
         }
     }
 }

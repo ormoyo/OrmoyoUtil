@@ -43,6 +43,7 @@ import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IGenericEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -87,7 +88,7 @@ class AbilityEventHandler
 
     static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
-    static Map<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
+    static IdentityHashMap<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
 
     static IForgeRegistry<AbilityEntry> ABILITY_REGISTRY;
     static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;
