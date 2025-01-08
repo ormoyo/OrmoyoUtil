@@ -14,7 +14,6 @@ import net.minecraftforge.fml.DistExecutor;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import javax.annotation.Nullable;
-import java.awt.event.KeyEvent;
 import java.util.*;
 
 public abstract class AbilityKeybindingBase extends Ability
@@ -35,7 +34,7 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @param keybind The pressed keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
+     * @param keybind The pressed keybind description. If it's the key returned by {@link #getKeybinding()} ()} then this will be null.
      */
     public void onKeyPress(@Nullable String keybind)
     {
@@ -49,7 +48,7 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @param keybind The pressed keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
+     * @param keybind The pressed keybind description. If it's the key returned by {@link #getKeybinding()} ()} then this will be null.
      */
     public void onKeyRelease(@Nullable String keybind)
     {
@@ -68,34 +67,28 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @return The keycode of the ability to be activated with. If you're using {@link #getKeyBindings()} you can just keep this as 0
-     * @see KeyEvent
-     */
-    public abstract int getKeyCode();
-
-    /**
-     * @return The keybind that is assigned to this ability.
+     * @return The first keybinding that is assigned to this ability.
      */
     @OnlyIn(Dist.CLIENT)
-    public KeyBinding getKeybind()
+    public KeyBinding getKeybinding()
     {
         return this.getKeyBindings()[0];
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected final KeyBinding getKeybindFromName(@Nullable String keybind)
+    protected final KeyBinding getKeyBindingFromName(@Nullable String keybind)
     {
-        return keybind == null ? this.getKeybind() : Arrays.stream(this.getKeyBindings())
+        return keybind == null ? this.getKeybinding() : Arrays.stream(this.getKeyBindings())
                 .filter(key -> keybind.equals(key.getKeyDescription()))
                 .findAny()
                 .orElse(null);
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected final String getKeybindName(KeyBinding keybind)
+    protected final String getKeyBindingName(KeyBinding keybind)
     {
         return keybind.getKeyDescription()
-                .equals(this.getKeybind().getKeyDescription()) ?
+                .equals(this.getKeybinding().getKeyDescription()) ?
                 null :
                 keybind.getKeyDescription();
     }
@@ -105,7 +98,7 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeyBindings()
     {
-        return keyBindings != null ? (keyBindings = ClientHandler.createKeybindingsFromRegistry(this)) : null;
+        return keyBindings != null ? (keyBindings = ClientHandler.createKeybindingsFromRegistry(this)) : new KeyBinding[0];
     }
 
     public static int convertKeyToId(String keybind)
@@ -122,12 +115,12 @@ public abstract class AbilityKeybindingBase extends Ability
     {
         private static void clientTick(AbilityKeybindingBase ability)
         {
-            if (!ability.getOwner().getEntityWorld().isRemote)
+            if (!ability.getOwner().world.isRemote)
                 return;
 
             for (KeyBinding keybind : ability.getKeyBindings())
             {
-                String keyName = ability.getKeybindName(keybind);
+                String keyName = ability.getKeyBindingName(keybind);
 
                 if (ability instanceof AbilityCooldown && ((AbilityCooldown) ability).isOnCooldown(keyName))
                     continue;

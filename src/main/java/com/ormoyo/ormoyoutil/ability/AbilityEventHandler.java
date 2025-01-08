@@ -312,7 +312,7 @@ class AbilityEventHandler
                     continue;
                 }
 
-                KeyBinding key = ability.getKeybind();
+                KeyBinding key = ability.getKeybinding();
                 if (key != null && Objects.equals(key.getKeyDescription(), keybind.getKeyDescription()))
                 {
                     ability.hasBeenPressed.put(null, new MutableBoolean());

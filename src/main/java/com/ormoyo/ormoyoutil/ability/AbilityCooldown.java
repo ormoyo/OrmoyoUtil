@@ -39,7 +39,7 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
     }
 
     /**
-     * @param keybind The keybind description. If it's the key created by {@link #getKeyCode()} then this will be null.
+     * @param keybind The keybind description. If it's the key returned by {@link #getKeybinding()} ()} then this will be null.
      * @return The specific cooldown in ticks for the keybind
      */
     public abstract int getCooldown(@Nullable String keybind);

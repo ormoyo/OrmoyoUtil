@@ -13,16 +13,12 @@ import net.minecraftforge.fml.network.NetworkEvent;
 @NetworkMessage(modid = OrmoyoUtil.MODID, direction = NetworkDirection.PLAY_TO_SERVER)
 public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
 {
-    private AbilityEntry entry;
+    private AbilityEntry<?> entry;
     private String keybind;
 
     private boolean isPressed;
 
-    public MessageOnAbilityKey()
-    {
-    }
-
-    public MessageOnAbilityKey(AbilityEntry entry, String keybind, boolean isPressed)
+    public MessageOnAbilityKey(AbilityEntry<?> entry, String keybind, boolean isPressed)
     {
         this.entry = entry;
         this.keybind = keybind;
@@ -43,7 +39,7 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
     @NetworkDecoder(MessageOnAbilityKey.class)
     public static MessageOnAbilityKey decode(PacketBuffer buffer)
     {
-        AbilityEntry entry = buffer.readRegistryIdUnsafe(Ability.getAbilityRegistry());
+        AbilityEntry<?> entry = buffer.readRegistryIdUnsafe(Ability.getAbilityRegistry());
         int id = buffer.readVarInt();
 
         boolean isPressed = buffer.readBoolean();
