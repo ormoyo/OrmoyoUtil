@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class NetworkHandler
@@ -34,10 +35,9 @@ public class NetworkHandler
     @ParametersAreNonnullByDefault
     public static void injectNetworkWrapper(ModContainer mod, ModFileScanData scanData)
     {
-        List<ModFileScanData.AnnotationData> annotations = scanData.getAnnotations().stream()
+        Stream<ModFileScanData.AnnotationData> annotations = scanData.getAnnotations().stream()
                 .filter(annotationData -> Type.getType(NetworkChannel.class).equals(annotationData.getAnnotationType()) &&
-                        Type.getType(mod.getMod().getClass()).equals(annotationData.getClassType()))
-                .collect(Collectors.toList());
+                        Type.getType(mod.getMod().getClass()).equals(annotationData.getClassType()));
 
         annotations.forEach(annotation ->
         {
@@ -68,14 +68,12 @@ public class NetworkHandler
     @ParametersAreNonnullByDefault
     public static <T extends AbstractMessage<T>> void registerNetworkMessages(ModFileScanData scanData)
     {
-        List<ModFileScanData.AnnotationData> messages = scanData.getAnnotations().stream()
+        Stream<ModFileScanData.AnnotationData> messages = scanData.getAnnotations().stream()
                 .filter(annotationData -> Type.getType(NetworkMessage.class).equals(annotationData.getAnnotationType()))
-                .sorted(Comparator.comparing(a -> a.getClassType().getInternalName()))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(a -> a.getClassType().getInternalName()));
 
-        List<ModFileScanData.AnnotationData> networkDecoders = scanData.getAnnotations().stream()
-                .filter(annotationData -> Type.getType(NetworkDecoder.class).equals(annotationData.getAnnotationType()))
-                .collect(Collectors.toList());
+        Stream<ModFileScanData.AnnotationData> networkDecoders = scanData.getAnnotations().stream()
+                .filter(annotationData -> Type.getType(NetworkDecoder.class).equals(annotationData.getAnnotationType()));
 
         networkDecoders.forEach(annotation ->
         {
@@ -100,7 +98,7 @@ public class NetworkHandler
                     }
                     catch (ClassNotFoundException e)
                     {
-                        throw new RuntimeException(e);
+                        OrmoyoUtil.LOGGER.error("Couldn't find the class {}", c.getClassName());
                     }
                 });
             }
@@ -137,14 +135,14 @@ public class NetworkHandler
 
                 if (holders == null)
                 {
-                    registerMessage(channel, message);
+                    NetworkHandler.registerMessage(channel, message);
                     return;
                 }
 
                 List<NetworkDirection> directions = holders.stream().map(h -> NetworkDirection.valueOf(h.getValue())).collect(Collectors.toList());
                 for (NetworkDirection direction : directions)
                 {
-                    registerMessage(channel, message, direction);
+                    NetworkHandler.registerMessage(channel, message, direction);
                 }
             }
             catch (ClassNotFoundException e)
@@ -156,7 +154,7 @@ public class NetworkHandler
 
     private static <T extends AbstractMessage<T>> void registerMessage(SimpleChannel channel, Class<T> clazz)
     {
-        registerMessage(channel, clazz, null);
+        NetworkHandler.registerMessage(channel, clazz, null);
     }
 
     private static <T extends AbstractMessage<T>> void registerMessage(SimpleChannel channel, Class<T> clazz, NetworkDirection direction)
