@@ -407,6 +407,7 @@ class AbilityEventHandler
                 }
                 catch (ClassNotFoundException e)
                 {
+                    OrmoyoUtil.LOGGER.fatal("Failed to load ability {}", annotationData.getClassType().getClassName());
                     throw new RuntimeException(e);
                 }
             };
@@ -614,12 +615,12 @@ class AbilityEventHandler
         AbilityEventList listenerList = AbilityEventHandler.getListenerList(event.getClass());
         for (Ability ability : abilityHolder.getAbilities())
         {
+            if (!ability.isEnabled())
+                break;
+
              Collection<AbilityEventListener> listeners = listenerList.getListeners(ability.getEntry());
              for (AbilityEventListener listener : listeners)
              {
-                 if (!ability.isEnabled())
-                     break;
-
                  if (!listener.getEventPredicate().test(ability, event))
                      continue;
 
