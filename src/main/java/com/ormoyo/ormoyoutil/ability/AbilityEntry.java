@@ -2,10 +2,14 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.capability.AbilityHolder;
+import net.minecraft.client.GameSettings;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -23,7 +27,8 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     private final Predicate<AbilityHolder> condition;
     private final int level;
 
-    public AbilityEntry(Class<? extends Ability> clazz)
+    final List<Integer> keyBindingIndices;
+
     public AbilityEntry(Class<T> clazz)
     {
         this(clazz, null);
@@ -42,12 +47,19 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     @SafeVarargs
     public AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
+        this(clazz, level, condition, 0, conditionCheckingEvents);
+    }
+
+    @SafeVarargs
+    AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, int keybindingsCount, Class<? extends Event>... conditionCheckingEvents)
+    {
         this.clazz = clazz;
 
         this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
 
         this.level = Math.max(level, 0);
+        this.keyBindingIndices = new ArrayList<>(keybindingsCount);
     }
 
     public Class<T> getAbilityClass()
@@ -81,6 +93,15 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     public Class<? extends Event>[] getConditionCheckingEvents()
     {
         return this.conditionCheckingEvents;
+    }
+
+    /**
+     * @implNote If the ability doesn't extend {@link AbilityKeybindingBase} this will always be empty
+     * @return The indices of the ability keybindings in {@link GameSettings#keyBindings}
+     */
+    public List<Integer> getKeyBindingIndices()
+    {
+        return Collections.unmodifiableList(this.keyBindingIndices);
     }
 
     @Override

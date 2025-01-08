@@ -77,7 +77,7 @@ public class OrmoyoUtil
         event.enqueueWork(() ->
         {
             Minecraft mc = event.getMinecraftSupplier().get();
-            if (event.getMinecraftSupplier().get().getResourceManager() instanceof IReloadableResourceManager)
+            if (mc.getResourceManager() instanceof IReloadableResourceManager)
             {
                 OrmoyoResourcePackListener listener = new OrmoyoResourcePackListener();
 
@@ -85,26 +85,6 @@ public class OrmoyoUtil
                 manager.addReloadListener(listener);
 
                 listener.onResourceManagerReload(manager);
-            }
-
-            for (AbilityEntry<?> entry : Ability.getAbilityRegistry().getValues())
-            {
-                if (AbilityKeybindingBase.class.isAssignableFrom(entry.getAbilityClass()))
-                {
-                    AbilityKeybindingBase ability = (AbilityKeybindingBase) entry.newInstance(Ability.getAbilityHolder(null));
-                    if (ability.getKeyCode() <= 0 || ability.getKeyType() == null)
-                        continue;
-
-                    ResourceLocation location = ability.getRegistryName();
-                    ClientRegistry.registerKeyBinding(
-                            new KeyBinding(
-                                    "key." + location.getNamespace() + "." + location.getPath(),
-                                    ability.getKeyConflictContext(),
-                                    ability.getKeyModifier(),
-                                    ability.getKeyType(),
-                                    ability.getKeyCode(),
-                                    "key." + location.getNamespace() + ".category"));
-                }
             }
         });
     }

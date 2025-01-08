@@ -1,5 +1,7 @@
 package com.ormoyo.ormoyoutil.ability;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
@@ -20,6 +22,7 @@ import com.ormoyo.ormoyoutil.util.ASMUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.AbstractClientPlayerEntity;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -48,8 +51,10 @@ import net.minecraftforge.eventbus.api.IGenericEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -88,6 +93,7 @@ class AbilityEventHandler
 
     static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
+    static Multimap<AbilityEntry<?>, AbilityEntryBuilder.AbilityKeybinding> KEYBINDINGS_TO_REGISTER = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> HashMultimap::create);
     static IdentityHashMap<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
 
     static IForgeRegistry<AbilityEntry<?>> ABILITY_REGISTRY;
@@ -346,6 +352,33 @@ class AbilityEventHandler
             {
                 AbilityEventHandler.onInit();
                 ABILITY_DISPLAY_NAMES = new IdentityHashMap<>(ABILITY_REGISTRY.getEntries().size());
+            });
+        }
+
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event)
+        {
+            event.enqueueWork(() ->
+            {
+                Minecraft mc = event.getMinecraftSupplier().get();
+                for (Map.Entry<AbilityEntry<?>, Collection<AbilityEntryBuilder.AbilityKeybinding>> keybindings : KEYBINDINGS_TO_REGISTER.asMap().entrySet())
+                {
+                    String namespace = Objects.requireNonNull(keybindings.getKey().getRegistryName()).getNamespace();
+                    for (AbilityEntryBuilder.AbilityKeybinding keybinding : keybindings.getValue())
+                    {
+                        ClientRegistry.registerKeyBinding(new KeyBinding(
+                                "key." + namespace + "." + keybinding.name,
+                                keybinding.context,
+                                keybinding.modifier,
+                                InputMappings.Type.valueOf(keybinding.type.desc),
+                                keybinding.code,
+                                "key." + namespace + ".category"));
+
+                        keybindings.getKey().keyBindingIndices.add(mc.gameSettings.keyBindings.length - 1);
+                    }
+                }
+
+                KEYBINDINGS_TO_REGISTER = null;
             });
         }
 

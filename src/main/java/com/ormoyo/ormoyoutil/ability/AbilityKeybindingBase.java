@@ -8,22 +8,14 @@ import com.ormoyo.ormoyoutil.network.MessageOnAbilityKey;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.client.util.InputMappings;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.settings.IKeyConflictContext;
-import net.minecraftforge.client.settings.KeyConflictContext;
-import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.fml.DistExecutor;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import javax.annotation.Nullable;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AbilityKeybindingBase extends Ability
 {
@@ -103,28 +95,10 @@ public abstract class AbilityKeybindingBase extends Ability
     }
 
     /**
-     * @return The keycode of the ability to be activated with. If you're using {@link #getKeybinds()} you can just keep this as 0
+     * @return The keycode of the ability to be activated with. If you're using {@link #getKeyBindings()} you can just keep this as 0
      * @see KeyEvent
      */
     public abstract int getKeyCode();
-
-    @OnlyIn(Dist.CLIENT)
-    public InputMappings.Type getKeyType()
-    {
-        return InputMappings.Type.KEYSYM;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public KeyModifier getKeyModifier()
-    {
-        return KeyModifier.NONE;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public IKeyConflictContext getKeyConflictContext()
-    {
-        return KeyConflictContext.IN_GAME;
-    }
 
     /**
      * @return The keybind that is assigned to this ability.
@@ -132,33 +106,16 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     public KeyBinding getKeybind()
     {
-        if (this.mainKeybind == null)
-        {
-            if (this.getKeyCode() <= 0)
-                return null;
-
-            ResourceLocation location = this.getRegistryName();
-            for (KeyBinding keybinding : Minecraft.getInstance().gameSettings.keyBindings)
-            {
-                if (keybinding.getKeyDescription().equals("key." + location.getNamespace() + "." + location.getPath()))
-                {
-                    return this.mainKeybind = keybinding;
-                }
-            }
-
-            return null;
-        }
-
-        return this.mainKeybind;
+        return this.getKeyBindings()[0];
     }
 
     @OnlyIn(Dist.CLIENT)
     protected final KeyBinding getKeybindFromName(@Nullable String keybind)
     {
-        return keybind == null ? this.getKeybind() : Arrays.stream(this.getKeybinds())
+        return keybind == null ? this.getKeybind() : Arrays.stream(this.getKeyBindings())
                 .filter(key -> keybind.equals(key.getKeyDescription()))
                 .findAny()
-                .orElseGet(() -> this.getKeybinds()[0]);
+                .orElse(null);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -170,17 +127,12 @@ public abstract class AbilityKeybindingBase extends Ability
                 keybind.getKeyDescription();
     }
 
-    /**
-     * Override this if you need to use multiple keybindings.
-     */
-    @OnlyIn(Dist.CLIENT)
-    public KeyBinding[] getKeybinds()
-    {
-        KeyBinding key = this.getKeybind();
-        if (key == null)
-            return new KeyBinding[0];
+    private KeyBinding[] keyBindings;
 
-        return new KeyBinding[] {this.getKeybind()};
+    @OnlyIn(Dist.CLIENT)
+    public KeyBinding[] getKeyBindings()
+    {
+        return keyBindings != null ? (keyBindings = AbilityKeybindingBase.createKeybindingsFromRegistry(this)) : null;
     }
 
     public static int convertKeyToId(String keybind)
@@ -191,5 +143,56 @@ public abstract class AbilityKeybindingBase extends Ability
     public static String convertIdToKey(int id)
     {
         return KEYBIND_IDS.inverse().get(id);
+    }
+
+    private static KeyBinding[] createKeybindingsFromRegistry(AbilityKeybindingBase ability)
+    {
+        List<Integer> indices = ability.getEntry().getKeyBindingIndices();
+        KeyBinding[] keybindings = new KeyBinding[indices.size()];
+
+        for (int i = 0; i < keybindings.length; i++)
+            keybindings[i] = Minecraft.getInstance().gameSettings.keyBindings[indices.get(i)];
+
+        return keybindings;
+    }
+
+    private static class ClientHandler
+    {
+        private static void clientTick(AbilityKeybindingBase ability)
+        {
+            if (!ability.getOwner().getEntityWorld().isRemote)
+                return;
+
+            for (KeyBinding keybind : ability.getKeyBindings())
+            {
+                String keyName = ability.getKeybindName(keybind);
+
+                if (ability instanceof AbilityCooldown && ((AbilityCooldown) ability).isOnCooldown(keyName))
+                    continue;
+
+                MutableBoolean hasBeenPressed = ability.hasBeenPressed.get(keyName);
+                if (keybind.isKeyDown() && !hasBeenPressed.booleanValue())
+                {
+                    ability.onKeyPress(keyName);
+                    hasBeenPressed.setTrue();
+                }
+                else if (!keybind.isKeyDown() && hasBeenPressed.booleanValue())
+                {
+                    ability.onKeyRelease(keyName);
+                    hasBeenPressed.setFalse();
+                }
+            }
+        }
+
+        private static KeyBinding[] createKeybindingsFromRegistry(AbilityKeybindingBase ability)
+        {
+            List<Integer> indices = ability.getEntry().getKeyBindingIndices();
+            KeyBinding[] keybindings = new KeyBinding[indices.size()];
+
+            for (int i = 0; i < keybindings.length; i++)
+                keybindings[i] = Minecraft.getInstance().gameSettings.keyBindings[indices.get(i)];
+
+            return keybindings;
+        }
     }
 }
