@@ -65,7 +65,7 @@ public class AbilityHolderImpl implements AbilityHolder
     }
 
     @Override
-    public boolean unlockAbility(AbilityEntry entry)
+    public boolean unlockAbility(AbilityEntry<?> entry)
     {
         Ability ability = entry.newInstance(this);
 

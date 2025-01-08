@@ -15,7 +15,7 @@ public interface AbilityHolder
 
     <T extends Ability> T getAbility(Class<T> clazz);
 
-    boolean unlockAbility(AbilityEntry entry);
+    boolean unlockAbility(AbilityEntry<?> entry);
 
     void setAbilities(Collection<Ability> abilities);
 

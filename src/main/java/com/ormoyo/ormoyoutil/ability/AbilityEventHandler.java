@@ -90,7 +90,7 @@ class AbilityEventHandler
 
     static IdentityHashMap<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
 
-    static IForgeRegistry<AbilityEntry> ABILITY_REGISTRY;
+    static IForgeRegistry<AbilityEntry<?>> ABILITY_REGISTRY;
     static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;
 
     @SuppressWarnings("ConstantConditions")
@@ -176,12 +176,12 @@ class AbilityEventHandler
         if (abilityHolder == null)
             return;
 
-        Collection<AbilityEntry> abilities = abilityHolder.getAbilities()
+        Collection<AbilityEntry<?>> abilities = abilityHolder.getAbilities()
                 .stream()
                 .map(Ability::getEntry)
                 .collect(Collectors.toList());
 
-        Collection<AbilityEntry> entries = Ability.getAbilityRegistry().getValues()
+        Collection<AbilityEntry<?>> entries = Ability.getAbilityRegistry().getValues()
                 .stream()
                 .filter(entry -> (abilities.contains(entry) ||
                         (entry.getLevel() <= 1 && (entry.getCondition() == null || entry.getConditionCheckingEvents().length == 0))) &&
@@ -408,12 +408,12 @@ class AbilityEventHandler
         @SubscribeEvent
         public static void onNewRegistry(RegistryEvent.NewRegistry event)
         {
-            ABILITY_REGISTRY = new RegistryBuilder<AbilityEntry>()
+            ABILITY_REGISTRY = new RegistryBuilder<AbilityEntry<?>>()
                     .setName(new ResourceLocation(OrmoyoUtil.MODID, "ability"))
-                    .setType(AbilityEntry.class)
+                    .setType(c(AbilityEntry.class))
                     .setIDRange(0, 2048)
                     .allowModification()
-                    .add((IForgeRegistry.AddCallback<AbilityEntry>) (owner, stage, id, entry, oldEntry) ->
+                    .add((IForgeRegistry.AddCallback<AbilityEntry<?>>) (owner, stage, id, entry, oldEntry) ->
                     {
                         IForgeRegistryModifiable<?> registry = (IForgeRegistryModifiable<?>) owner;
 
@@ -454,10 +454,16 @@ class AbilityEventHandler
                     .create();
         }
 
-        @SubscribeEvent
-        public static void registerAbilities(RegistryEvent.Register<AbilityEntry> event)
+        @SuppressWarnings("unchecked") //Ugly hack to let us pass in a typed Class object. Remove when we remove type specific references.
+        private static <T> Class<T> c(Class<?> cls)
         {
-            event.getRegistry().register(AbilityEntryBuilder.create()
+            return (Class<T>)cls;
+        }
+
+        @SubscribeEvent
+        public static void registerAbilities(RegistryEvent.Register<AbilityEntry<?>> event)
+        {
+            event.getRegistry().register(AbilityEntryBuilder.<StatsAbility>create()
                     .ability(StatsAbility.class)
                     .id(new ResourceLocation(OrmoyoUtil.MODID, "stats"))
                     .build());

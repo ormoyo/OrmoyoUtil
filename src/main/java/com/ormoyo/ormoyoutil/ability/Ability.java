@@ -36,7 +36,7 @@ public abstract class Ability
 
     private static final AbilityDataParameter<Boolean> IS_ENABLED = AbilitySyncManager.createKey(Ability.class, DataSerializers.BOOLEAN);
 
-    private final AbilityEntry entry;
+    private final AbilityEntry<?> entry;
     protected final AbilitySyncManager syncManager;
 
     protected final PlayerEntity owner;
@@ -180,16 +180,17 @@ public abstract class Ability
         return Objects.hash(entry, owner);
     }
 
-    public static AbilityEntry getAbilityClassEntry(Class<? extends Ability> clazz)
+    @SuppressWarnings("unchecked")
+    public static<T extends Ability> AbilityEntry<T> getAbilityClassEntry(Class<T> clazz)
     {
-        for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
+        for (AbilityEntry<?> entry : Ability.getAbilityRegistry().getValues())
             if (entry.getAbilityClass() == clazz)
-                return entry;
+                return (AbilityEntry<T>) entry;
 
         return null;
     }
 
-    public static IForgeRegistry<AbilityEntry> getAbilityRegistry()
+    public static IForgeRegistry<AbilityEntry<?>> getAbilityRegistry()
     {
         return AbilityEventHandler.ABILITY_REGISTRY;
     }

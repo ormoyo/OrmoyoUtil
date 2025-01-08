@@ -18,14 +18,14 @@ import java.util.stream.Collectors;
 public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
 {
     private final int targetedPlayerId;
-    private final Collection<AbilityEntry> entries;
+    private final Collection<AbilityEntry<?>> entries;
 
-    public MessageSetAbilities(AbilityHolder targetedPlayer, Collection<AbilityEntry> entries)
+    public MessageSetAbilities(AbilityHolder targetedPlayer, Collection<AbilityEntry<?>> entries)
     {
         this(targetedPlayer.asPlayer().getEntityId(), entries);
     }
 
-    private MessageSetAbilities(int targetedPlayerId, Collection<AbilityEntry> entries)
+    private MessageSetAbilities(int targetedPlayerId, Collection<AbilityEntry<?>> entries)
     {
         this.targetedPlayerId = targetedPlayerId;
         this.entries = entries;
@@ -37,7 +37,7 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
         buffer.writeVarInt(this.targetedPlayerId);
         buffer.writeVarInt(this.entries.size());
 
-        for (AbilityEntry entry : this.entries)
+        for (AbilityEntry<?> entry : this.entries)
             buffer.writeRegistryId(entry);
     }
 
@@ -47,7 +47,7 @@ public class MessageSetAbilities extends AbstractMessage<MessageSetAbilities>
         int playerId = buffer.readVarInt();
         int capacity = buffer.readVarInt();
 
-        Collection<AbilityEntry> entries = new ArrayList<>(capacity);
+        Collection<AbilityEntry<?>> entries = new ArrayList<>(capacity);
 
         for (int i = 0; i < capacity; i++)
             entries.add(buffer.readRegistryId());

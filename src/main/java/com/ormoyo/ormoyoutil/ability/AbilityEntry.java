@@ -11,35 +11,36 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 @SuppressWarnings("unchecked")
-public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
+public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityEntry<?>>
 {
     private static final Class<? extends Event>[] EMPTY_CLASS_ARRAY = new Class[0];
 
-    Function<AbilityHolder, ? extends Ability> abilityConstructor;
+    Function<AbilityHolder, T> abilityConstructor;
 
-    private final Class<? extends Ability> clazz;
+    private final Class<T> clazz;
     private final Class<? extends Event>[] conditionCheckingEvents;
 
     private final Predicate<AbilityHolder> condition;
     private final int level;
 
     public AbilityEntry(Class<? extends Ability> clazz)
+    public AbilityEntry(Class<T> clazz)
     {
         this(clazz, null);
     }
 
-    public AbilityEntry(Class<? extends Ability> clazz, int level)
+    public AbilityEntry(Class<T> clazz, int level)
     {
         this(clazz, level, null);
     }
 
-    public AbilityEntry(Class<? extends Ability> clazz, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
+    public AbilityEntry(Class<T> clazz, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this(clazz, 0, condition, conditionCheckingEvents);
     }
 
     @SafeVarargs
-    public AbilityEntry(Class<? extends Ability> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
+    public AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this.clazz = clazz;
 
@@ -49,56 +50,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
         this.level = Math.max(level, 0);
     }
 
-    public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz)
-    {
-        this(name, clazz, null);
-    }
-
-    public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, int level)
-    {
-        this(name, clazz, level, null);
-    }
-
-    public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
-    {
-        this(name, clazz, 0, condition, conditionCheckingEvents);
-    }
-
-    @SafeVarargs
-    public AbilityEntry(ResourceLocation name, Class<? extends Ability> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
-    {
-        this(name.toString(), clazz, level, condition, conditionCheckingEvents);
-    }
-
-    public AbilityEntry(String name, Class<? extends Ability> clazz)
-    {
-        this(name, clazz, null);
-    }
-
-    public AbilityEntry(String name, Class<? extends Ability> clazz, int level)
-    {
-        this(name, clazz, level, null);
-    }
-
-    public AbilityEntry(String name, Class<? extends Ability> clazz, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
-    {
-        this(name, clazz, 0, condition, conditionCheckingEvents);
-    }
-
-    @SafeVarargs
-    public AbilityEntry(String name, Class<? extends Ability> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
-    {
-        this.clazz = clazz;
-
-        this.condition = condition;
-        this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
-
-        this.level = Math.max(level, 0);
-
-        this.setRegistryName(name);
-    }
-
-    public Class<? extends Ability> getAbilityClass()
+    public Class<T> getAbilityClass()
     {
         return this.clazz;
     }
@@ -145,7 +97,7 @@ public class AbilityEntry extends ForgeRegistryEntry<AbilityEntry>
 
         if (obj instanceof AbilityEntry)
         {
-            AbilityEntry entry = (AbilityEntry) obj;
+            AbilityEntry<?> entry = (AbilityEntry<?>) obj;
             return Objects.equals(this.getRegistryName(), entry.getRegistryName());
         }
 

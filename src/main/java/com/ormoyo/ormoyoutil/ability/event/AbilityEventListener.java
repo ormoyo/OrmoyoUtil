@@ -15,7 +15,7 @@ public interface AbilityEventListener<T extends Event>
 
     Class<T> getEventClass();
 
-    AbilityEntry getAbilityEntry();
+    AbilityEntry<?> getAbilityEntry();
 
     Method getMethod();
 }

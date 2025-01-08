@@ -87,7 +87,7 @@ public class OrmoyoUtil
                 listener.onResourceManagerReload(manager);
             }
 
-            for (AbilityEntry entry : Ability.getAbilityRegistry().getValues())
+            for (AbilityEntry<?> entry : Ability.getAbilityRegistry().getValues())
             {
                 if (AbilityKeybindingBase.class.isAssignableFrom(entry.getAbilityClass()))
                 {

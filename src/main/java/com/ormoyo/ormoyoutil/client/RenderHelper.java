@@ -1,55 +1,52 @@
 package com.ormoyo.ormoyoutil.client;
 
 import com.google.common.collect.Maps;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.ormoyo.ormoyoutil.client.button.BetterButton;
-import com.ormoyo.ormoyoutil.util.vector.Vec2i;
+import com.ormoyo.ormoyoutil.util.vector.Vector2i;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.client.renderer.texture.NativeImage;
-import net.minecraft.client.renderer.texture.SimpleTexture;
-import net.minecraft.client.renderer.texture.Texture;
+import net.minecraft.client.renderer.texture.*;
 import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.resource.IResourceType;
 import net.minecraftforge.resource.ISelectiveResourceReloadListener;
 import net.minecraftforge.resource.VanillaResourceType;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Predicate;
 
 import static net.minecraft.client.renderer.vertex.DefaultVertexFormats.*;
 import static org.lwjgl.opengl.GL11.GL_QUADS;
 
+@OnlyIn(Dist.CLIENT)
 public class RenderHelper
 {
-    private static final Map<ResourceLocation, Vec2i> locationToSize = Maps.newHashMap();
+    private static final Map<ResourceLocation, Vector2i> locationToSize = Maps.newHashMap();
     public static final ResourceLocation WHITE;
 
-    public static Vec2i getTextureSize(ResourceLocation texture)
+    public static Vector2i getTextureSize(ResourceLocation texture)
     {
-        Vec2i size = null;
+        Vector2i size = null;
 
-        if (!RenderHelper.locationToSize.containsKey(texture))
-            size = loadTexture(texture);
+		if (!RenderHelper.locationToSize.containsKey(texture))
+			size = loadTexture(texture);
 
-        return size == null ? RenderHelper.locationToSize.getOrDefault(texture, Vec2i.NULL_VECTOR) : size;
+        return size == null ? RenderHelper.locationToSize.getOrDefault(texture, Vector2i.NULL_VECTOR) : size;
     }
 
-    private static Vec2i loadTexture(ResourceLocation location)
+    private static Vector2i loadTexture(ResourceLocation location)
     {
         Texture texture = Minecraft.getInstance().getTextureManager().getTexture(location);
         if (texture instanceof SimpleTexture)
@@ -57,7 +54,7 @@ public class RenderHelper
             try (SimpleTexture.TextureData data = SimpleTexture.TextureData.getTextureData(Minecraft.getInstance().getResourceManager(), location))
             {
                 NativeImage image = data.getNativeImage();
-                Vec2i size = new Vec2i(image.getWidth(), image.getHeight());
+                Vector2i size = new Vector2i(image.getWidth(), image.getHeight());
 
                 RenderHelper.locationToSize.put(location, size);
                 return size;
@@ -74,16 +71,13 @@ public class RenderHelper
             NativeImage image = dynamicTexture.getTextureData();
 
             if (image == null)
-            {
                 return null;
-            }
 
-            Vec2i size = new Vec2i(image.getWidth(), image.getHeight());
+            Vector2i size = new Vector2i(image.getWidth(), image.getHeight());
             RenderHelper.locationToSize.put(location, size);
 
             return size;
         }
-
         return null;
     }
 
@@ -187,16 +181,15 @@ public class RenderHelper
         tessellator.draw();
     }
 
-    public static void drawWidgetHitBox(Widget widget)
+    public static void drawWidgetHitBox(Widget button)
     {
         Minecraft.getInstance().getTextureManager().bindTexture(WHITE);
-        setupBlend();
+        RenderHelper.setupOpacity();
 
-        double x = widget instanceof BetterButton ? ((BetterButton) widget).xD : widget.x;
-        double y = widget instanceof BetterButton ? ((BetterButton) widget).yD : widget.y;
-        double width = widget instanceof BetterButton ? ((BetterButton) widget).widthD : widget.getWidth();
-        double height = widget instanceof BetterButton ? ((BetterButton) widget).heightD : widget.getHeight();
-
+        double x = button instanceof BetterButton ? ((BetterButton) button).xD : button.x;
+        double y = button instanceof BetterButton ? ((BetterButton) button).yD : button.y;
+        double width = button instanceof BetterButton ? ((BetterButton) button).widthD : button.getWidth();
+        double height = button instanceof BetterButton ? ((BetterButton) button).heightD : button.getHeight();
         int opacity = 125;
 
         Tessellator tessellator = Tessellator.getInstance();
@@ -212,26 +205,25 @@ public class RenderHelper
         tessellator.draw();
     }
 
-    public static void drawWidgetHitBox(Widget widget, Color color)
+    public static void drawWidgetHitBox(Widget button, Color color)
     {
-        RenderHelper.drawWidgetHitBox(widget, color.getRGB());
+        RenderHelper.drawWidgetHitBox(button, color.getRGB());
     }
 
-    public static void drawWidgetHitBox(Widget widget, int color)
+    public static void drawWidgetHitBox(Widget button, int color)
     {
         Minecraft.getInstance().getTextureManager().bindTexture(WHITE);
-        setupBlend();
+        RenderHelper.setupOpacity();
 
-        double x = widget instanceof BetterButton ? ((BetterButton) widget).xD : widget.x;
-        double y = widget instanceof BetterButton ? ((BetterButton) widget).yD : widget.y;
-        double width = widget instanceof BetterButton ? ((BetterButton) widget).widthD : widget.getWidth();
-        double height = widget instanceof BetterButton ? ((BetterButton) widget).heightD : widget.getHeight();
+        double x = button instanceof BetterButton ? ((BetterButton) button).xD : button.x;
+        double y = button instanceof BetterButton ? ((BetterButton) button).yD : button.y;
+        double width = button instanceof BetterButton ? ((BetterButton) button).widthD : button.getWidth();
+        double height = button instanceof BetterButton ? ((BetterButton) button).heightD : button.getHeight();
 
         int red = (color >> 16) & 0xFF;
         int green = (color >> 8) & 0xFF;
         int blue = (color >> 0) & 0xFF;
         int alpha = (color >> 24) & 0xFF;
-
         int opacity = Math.max(125, alpha);
 
         Tessellator tessellator = Tessellator.getInstance();
@@ -249,7 +241,7 @@ public class RenderHelper
 
     public static void drawTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int width, int height, double scale)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -273,7 +265,7 @@ public class RenderHelper
 
     public static void drawTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int width, int height, double scale, int color)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -297,7 +289,7 @@ public class RenderHelper
 
     public static void drawTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, double scale)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -321,7 +313,7 @@ public class RenderHelper
 
     public static void drawTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, double scale, int color)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -345,7 +337,7 @@ public class RenderHelper
 
     public static void drawSeamlessTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, double scale)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -371,7 +363,6 @@ public class RenderHelper
             {
                 double wOff = w;
                 double hOff = h;
-
                 float maxUOff = maxU;
                 float maxVOff = maxV;
 
@@ -382,13 +373,13 @@ public class RenderHelper
                         if (width % uWidth != 0)
                         {
                             wOff = width % uWidth;
-                            maxUOff = (float) (u + (width % uWidth)) / imageWidth;
+                            maxUOff = (float) ((u + (width % uWidth)) / imageWidth);
                         }
                     }
                     else
                     {
                         wOff = width;
-                        maxUOff = (float) (u + width) / imageWidth;
+                        maxUOff = (float) ((u + width) / imageWidth);
                     }
                 }
 
@@ -399,13 +390,13 @@ public class RenderHelper
                         if (height % vHeight != 0)
                         {
                             hOff = height % vHeight;
-                            maxVOff = (float) (v + (height % vHeight)) / imageHeight;
+                            maxVOff = (float) ((v + (height % vHeight)) / imageHeight);
                         }
                     }
                     else
                     {
                         hOff = height;
-                        maxVOff = (float) (v + height) / imageHeight;
+                        maxVOff = (float) ((v + height) / imageHeight);
                     }
                 }
 
@@ -429,7 +420,7 @@ public class RenderHelper
 
     public static void drawSeamlessTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, double scale, int color)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -470,13 +461,13 @@ public class RenderHelper
                         if (width % uWidth != 0)
                         {
                             wOff = width % uWidth;
-                            maxUOff = (float) (u + (width % uWidth)) / imageWidth;
+                            maxUOff = (float) ((u + (width % uWidth)) / imageWidth);
                         }
                     }
                     else
                     {
                         wOff = width;
-                        maxUOff = (float) (u + width) / imageWidth;
+                        maxUOff = (float) ((u + width) / imageWidth);
                     }
                 }
 
@@ -487,13 +478,13 @@ public class RenderHelper
                         if (height % vHeight != 0)
                         {
                             hOff = height % vHeight;
-                            maxVOff = (float) (v + (height % vHeight)) / imageHeight;
+                            maxVOff = (float) ((v + (height % vHeight)) / imageHeight);
                         }
                     }
                     else
                     {
                         hOff = height;
-                        maxVOff = (float) (v + height) / imageHeight;
+                        maxVOff = (float) ((v + height) / imageHeight);
                     }
                 }
 
@@ -512,7 +503,7 @@ public class RenderHelper
 
     public static void drawSeamlessTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, int textureOffsetX, int textureOffsetY, double scale)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -548,18 +539,17 @@ public class RenderHelper
             {
                 if (textureOffsetY != 0)
                 {
-                    minVOff = (float) (v + textureOffsetY + vHeight) / imageHeight;
+                    minVOff = (float) ((v + textureOffsetY + vHeight) / imageHeight);
                     hOff = -textureOffsetY;
-
                     if (yPos + hOff > y + height)
                     {
                         hOff = height;
-                        maxVOff = (float) ((v + textureOffsetY + vHeight) + hOff) / imageHeight;
+                        maxVOff = (float) (((v + textureOffsetY + vHeight) + hOff) / imageHeight);
                     }
                 }
                 else
                 {
-                    maxVOff = (float) (v + h) / imageHeight;
+                    maxVOff = (float) ((v + h) / imageHeight);
                 }
             }
             else if (iy + 1 >= hRatio)
@@ -569,13 +559,13 @@ public class RenderHelper
                     if (height % vHeight != 0)
                     {
                         hOff = height % vHeight;
-                        maxVOff = (float) (v + hOff) / imageHeight;
+                        maxVOff = (float) ((v + hOff) / imageHeight);
                     }
                 }
                 else
                 {
                     hOff = height + textureOffsetY;
-                    maxVOff = (float) (v + textureOffsetY + height) / imageHeight;
+                    maxVOff = (float) ((v + textureOffsetY + height) / imageHeight);
                 }
             }
 
@@ -584,7 +574,7 @@ public class RenderHelper
                 double vy = yPos - y;
 
                 hOff = height - vy;
-                maxVOff = (float) (v + hOff) / imageHeight;
+                maxVOff = (float) ((v + hOff) / imageHeight);
             }
 
             for (int ix = 0; ix < wRatio; ix++)
@@ -598,17 +588,17 @@ public class RenderHelper
                 {
                     if (textureOffsetX != 0)
                     {
-                        minUOff = (float) (u + textureOffsetX + uWidth) / imageWidth;
+                        minUOff = (float) ((u + textureOffsetX + uWidth) / imageWidth);
                         wOff = -textureOffsetX;
                         if (xPos + wOff > x + width)
                         {
                             wOff = width;
-                            maxUOff = (float) ((u + textureOffsetX + uWidth) + wOff) / imageWidth;
+                            maxUOff = (float) (((u + textureOffsetX + uWidth) + wOff) / imageWidth);
                         }
                     }
                     else
                     {
-                        maxUOff = (float) (u + w) / imageWidth;
+                        maxUOff = (float) ((u + w) / imageWidth);
                     }
                 }
                 else if (ix + 1 >= wRatio)
@@ -618,21 +608,22 @@ public class RenderHelper
                         if (width % uWidth != 0)
                         {
                             wOff = width % uWidth;
-                            maxUOff = (float) (u + wOff) / imageWidth;
+                            maxUOff = (float) ((u + wOff) / imageWidth);
                         }
                     }
                     else
                     {
                         wOff = width + textureOffsetX;
-                        maxUOff = (float) (u + textureOffsetX + width) / imageWidth;
+                        maxUOff = (float) ((u + textureOffsetX + width) / imageWidth);
                     }
                 }
 
                 if (xPos + wOff > x + width)
                 {
                     double ux = xPos - x;
+
                     wOff = width - ux;
-                    maxUOff = (float) (u + wOff) / imageWidth;
+                    maxUOff = (float) ((u + wOff) / imageWidth);
                 }
 
                 buffer.pos(xPos + scale * wOff, yPos + scale * hOff, 0).tex(maxUOff, maxVOff).endVertex();
@@ -655,7 +646,7 @@ public class RenderHelper
 
     public static void drawSeamlessTexturedRectToBuffer(BufferBuilder buffer, ResourceLocation texture, double x, double y, int u, int v, int uWidth, int vHeight, double width, double height, int textureOffsetX, int textureOffsetY, double scale, int color)
     {
-        Vec2i size = getTextureSize(texture);
+        Vector2i size = getTextureSize(texture);
         Minecraft.getInstance().getTextureManager().bindTexture(texture);
 
         int imageWidth = size.getX();
@@ -696,17 +687,17 @@ public class RenderHelper
             {
                 if (textureOffsetY != 0)
                 {
-                    minVOff = (float) (v + textureOffsetY + vHeight) / imageHeight;
+                    minVOff = (float) ((v + textureOffsetY + vHeight) / imageHeight);
                     hOff = -textureOffsetY;
                     if (yPos + hOff > y + height)
                     {
                         hOff = height;
-                        maxVOff = (float) ((v + textureOffsetY + vHeight) + hOff) / imageHeight;
+                        maxVOff = (float) (((v + textureOffsetY + vHeight) + hOff) / imageHeight);
                     }
                 }
                 else
                 {
-                    maxVOff = (float) (v + h) / imageHeight;
+                    maxVOff = (float) ((v + h) / imageHeight);
                 }
             }
             else if (iy + 1 >= hRatio)
@@ -716,13 +707,13 @@ public class RenderHelper
                     if (height % vHeight != 0)
                     {
                         hOff = height % vHeight;
-                        maxVOff = (float) (v + hOff) / imageHeight;
+                        maxVOff = (float) ((v + hOff) / imageHeight);
                     }
                 }
                 else
                 {
                     hOff = height + textureOffsetY;
-                    maxVOff = (float) (v + textureOffsetY + height) / imageHeight;
+                    maxVOff = (float) ((v + textureOffsetY + height) / imageHeight);
                 }
             }
 
@@ -731,7 +722,7 @@ public class RenderHelper
                 double vy = yPos - y;
 
                 hOff = height - vy;
-                maxVOff = (float) (v + hOff) / imageHeight;
+                maxVOff = (float) ((v + hOff) / imageHeight);
             }
 
             for (int ix = 0; ix < wRatio; ix++)
@@ -745,18 +736,18 @@ public class RenderHelper
                 {
                     if (textureOffsetX != 0)
                     {
-                        minUOff = (float) (u + textureOffsetX + uWidth) / imageWidth;
+                        minUOff = (float) ((u + textureOffsetX + uWidth) / imageWidth);
                         wOff = -textureOffsetX;
 
                         if (xPos + wOff > x + width)
                         {
                             wOff = width;
-                            maxUOff = (float) ((u + textureOffsetX + uWidth) + wOff) / imageWidth;
+                            maxUOff = (float) (((u + textureOffsetX + uWidth) + wOff) / imageWidth);
                         }
                     }
                     else
                     {
-                        maxUOff = (float) (u + w) / imageWidth;
+                        maxUOff = (float) ((u + w) / imageWidth);
                     }
                 }
                 else if (ix + 1 >= wRatio)
@@ -766,13 +757,13 @@ public class RenderHelper
                         if (width % uWidth != 0)
                         {
                             wOff = width % uWidth;
-                            maxUOff = (float) (u + wOff) / imageWidth;
+                            maxUOff = (float) ((u + wOff) / imageWidth);
                         }
                     }
                     else
                     {
                         wOff = width + textureOffsetX;
-                        maxUOff = (float) (u + textureOffsetX + width) / imageWidth;
+                        maxUOff = (float) ((u + textureOffsetX + width) / imageWidth);
                     }
                 }
 
@@ -781,7 +772,7 @@ public class RenderHelper
                     double ux = xPos - x;
 
                     wOff = width - ux;
-                    maxUOff = (float) (u + wOff) / imageWidth;
+                    maxUOff = (float) ((u + wOff) / imageWidth);
                 }
 
                 buffer.pos(xPos + scale * wOff, yPos + scale * hOff, 0).color(red, green, blue, alpha).tex(maxUOff, maxVOff).endVertex();
@@ -797,12 +788,13 @@ public class RenderHelper
         }
     }
 
-    public static void setupBlend()
+    public static void setupOpacity()
     {
         RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
     }
 
+    @OnlyIn(Dist.CLIENT)
     private static class ReloadListener implements ISelectiveResourceReloadListener
     {
         @Override
@@ -810,9 +802,9 @@ public class RenderHelper
         {
             if (resourcePredicate.test(VanillaResourceType.TEXTURES))
             {
-                for (Iterator<Map.Entry<ResourceLocation, Vec2i>> iterator = locationToSize.entrySet().iterator(); iterator.hasNext(); )
+                for (Iterator<Entry<ResourceLocation, Vector2i>> iterator = locationToSize.entrySet().iterator(); iterator.hasNext();)
                 {
-                    Map.Entry<ResourceLocation, Vec2i> entry = iterator.next();
+                    Entry<ResourceLocation, Vector2i> entry = iterator.next();
                     Texture obj = Minecraft.getInstance().getTextureManager().getTexture(entry.getKey());
 
                     if (obj == null)
@@ -821,7 +813,14 @@ public class RenderHelper
                         continue;
                     }
 
-                    loadTexture(entry.getKey());
+                    if (obj == MissingTextureSprite.getDynamicTexture() &&
+                            !entry.getKey().equals(MissingTextureSprite.getLocation()))
+                    {
+                        iterator.remove();
+                        continue;
+                    }
+
+                    RenderHelper.getTextureSize(entry.getKey());
                 }
             }
         }
@@ -829,27 +828,10 @@ public class RenderHelper
 
     static
     {
-        BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
-        Graphics g = image.getGraphics();
+        NativeImage img = new NativeImage(1, 1, true);
+        img.setPixelRGBA(0, 0, Color.WHITE.getRGB());
 
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, image.getWidth(), image.getHeight());
-        g.dispose();
-
-        try
-        {
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-            ImageIO.write(image, "png", os);
-            InputStream is = new ByteArrayInputStream(os.toByteArray());
-
-            NativeImage img = NativeImage.read(is);
-            WHITE = Minecraft.getInstance().getTextureManager().getDynamicTextureLocation("white", new DynamicTexture(img));
-        }
-        catch (IOException e)
-        {
-            throw new RuntimeException(e);
-        }
+        WHITE = Minecraft.getInstance().getTextureManager().getDynamicTextureLocation("white", new DynamicTexture(img));
 
         IResourceManager resourceManager = Minecraft.getInstance().getResourceManager();
         if (resourceManager instanceof IReloadableResourceManager)

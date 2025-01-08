@@ -6,9 +6,9 @@ import net.minecraftforge.eventbus.api.Event;
 
 import java.util.function.Predicate;
 
-public final class AbilityEntryBuilder
+public final class AbilityEntryBuilder<T extends Ability>
 {
-    private Class<? extends Ability> clazz;
+    private Class<T> clazz;
     private Predicate<AbilityHolder> condition;
 
     private Class<? extends Event>[] conditionCheckingEvents;
@@ -16,16 +16,16 @@ public final class AbilityEntryBuilder
 
     private int level;
 
-    public static AbilityEntryBuilder create()
+    public static<T extends Ability> AbilityEntryBuilder<T> create()
     {
-        return new AbilityEntryBuilder();
+        return new AbilityEntryBuilder<>();
     }
 
     /**
      * @param clazz The class of the ability
      * @return this
      */
-    public AbilityEntryBuilder ability(Class<? extends Ability> clazz)
+    public AbilityEntryBuilder<T> ability(Class<T> clazz)
     {
         this.clazz = clazz;
         return this;
@@ -35,7 +35,7 @@ public final class AbilityEntryBuilder
      * @param location The id of the ability
      * @return this
      */
-    public AbilityEntryBuilder id(ResourceLocation location)
+    public AbilityEntryBuilder<T> id(ResourceLocation location)
     {
         this.location = location;
         return this;
@@ -45,7 +45,7 @@ public final class AbilityEntryBuilder
      * @param level The level a player needs to level up to unlock the ability
      * @return this
      */
-    public AbilityEntryBuilder level(int level)
+    public AbilityEntryBuilder<T> level(int level)
     {
         this.level = level;
         return this;
@@ -61,7 +61,7 @@ public final class AbilityEntryBuilder
      * @return this
      */
     @SafeVarargs
-    public final AbilityEntryBuilder condition(Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
+    public final AbilityEntryBuilder<T> condition(Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
         this.condition = condition;
         this.conditionCheckingEvents = conditionCheckingEvents;
@@ -73,7 +73,22 @@ public final class AbilityEntryBuilder
     {
         if (this.location == null)
             return new AbilityEntry(this.clazz, this.level, this.condition, this.conditionCheckingEvents);
+    public AbilityEntry<T> build()
+    {
+        AbilityEntry<T> entry = new AbilityEntry<>(this.clazz, this.level, this.condition, this.conditionCheckingEvents);
+        if (location != null)
+            entry.setRegistryName(this.location);
 
-        return new AbilityEntry(this.location, this.clazz, this.level, this.condition, this.conditionCheckingEvents);
+        return entry;
+    }
+
+        AbilityKeybinding(String name, int code, KeyModifier modifier, InputType type, KeyConflictContext conflictContext)
+        {
+            this.name = name;
+            this.code = code;
+            this.modifier = modifier;
+            this.type = type;
+            this.context = conflictContext;
+        }
     }
 }
