@@ -124,7 +124,7 @@ public class FontLoader
 
                     int width = resolution * 10;
 
-                    BufferedImage img = new BufferedImage(width + width % 2, height > 0 ? height : f.getSize(), BufferedImage.TYPE_INT_ARGB);
+                    BufferedImage img = new BufferedImage(width, height > 0 ? height : f.getSize(), BufferedImage.TYPE_INT_ARGB);
                     Graphics g = img.getGraphics();
 
                     g.setColor(Color.WHITE);
@@ -142,7 +142,7 @@ public class FontLoader
             }
             catch (Exception e)
             {
-                OrmoyoUtil.LOGGER.fatal("Failed to create font " + font);
+                OrmoyoUtil.LOGGER.fatal("Failed to create font {}", font);
                 e.printStackTrace();
             }
         }

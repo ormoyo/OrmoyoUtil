@@ -70,7 +70,7 @@ public class FontHelper
 
             float hoff = ((float) glyph.yoffset / font.getResolution() * fontSizeMult);
 
-            RenderHelper.setupBlend();
+            RenderHelper.setupOpacity();
             if (location == TextureManager.RESOURCE_LOCATION_EMPTY)
             {
                 NativeImage image = info.blockMaps.get(blockName);
@@ -170,7 +170,7 @@ public class FontHelper
         float cursorX = 0;
         float cursorY = 0;
 
-        RenderHelper.setupBlend();
+        RenderHelper.setupOpacity();
 
         String[] lines = getLinesForFont(font, text, scale, lineWidth);
         for (String line : lines)

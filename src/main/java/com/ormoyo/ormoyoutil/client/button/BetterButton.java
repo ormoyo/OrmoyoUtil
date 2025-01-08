@@ -9,7 +9,6 @@ import net.minecraft.client.MouseHelper;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.math.MathHelper;
@@ -57,7 +56,6 @@ public class BetterButton extends Button
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder bb = tess.getBuffer();
 
-        IRenderTypeBuffer.getImpl(bb).finish();
         bb.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
         if (this.drawBorder)
         {
