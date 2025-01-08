@@ -36,7 +36,7 @@ public class AcquireAbilityCommand
     }
 
 
-    private static int acquireAbility(CommandSource source, AbilityEntry entry) throws CommandSyntaxException
+    private static int acquireAbility(CommandSource source, AbilityEntry<?> entry) throws CommandSyntaxException
     {
         AbilityHolder abilityHolder = Ability.getAbilityHolder(source.asPlayer());
 
@@ -58,10 +58,10 @@ public class AcquireAbilityCommand
     }
 
 
-    private static class AbilityParser implements ArgumentType<AbilityEntry>
+    private static class AbilityParser implements ArgumentType<AbilityEntry<?>>
     {
         @Override
-        public AbilityEntry parse(StringReader reader) throws CommandSyntaxException
+        public AbilityEntry<?> parse(StringReader reader) throws CommandSyntaxException
         {
             ResourceLocation location = ResourceLocation.read(reader);
 

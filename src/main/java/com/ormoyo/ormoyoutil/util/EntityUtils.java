@@ -9,19 +9,6 @@ import java.util.*;
 
 public class EntityUtils
 {
-    public static double getYawBetweenEntities(Entity a, Entity b)
-    {
-        return Math.atan2(a.getPosZ() - b.getPosZ(), a.getPosX() - b.getPosX()) * (180 / Math.PI) + 90;
-    }
-
-    public static double getPitchBetweenEntities(Entity a, Entity b)
-    {
-        double dx = a.getPosX() - b.getPosX();
-        double dz = a.getPosZ() - b.getPosZ();
-
-        return Math.atan2((a.getPosY() + a.getEyeHeight()) - (b.getPosY() + (b.getHeight() / 2.0F)), Math.sqrt(dx * dx + dz * dz)) * 180 / Math.PI;
-    }
-
     public static List<Entity> getEntitiesNearbyEntity(Entity entity, float radius)
     {
         return EntityUtils.getEntitiesNearbyEntity(Entity.class, entity, radius);
