@@ -115,12 +115,7 @@ class AbilityEventHandler
 
                 for (Method method : eventMethods)
                 {
-                    Class<?> eventT = AbilityEventHandler.getEventParameter(method);
-
-                    if (!Event.class.isAssignableFrom(eventT))
-                        throw new IllegalArgumentException("Ability method " + method + " has @SubscribeEvent annotation, but takes a argument that is not an Event " + eventT);
-
-                    Class<? extends Event> eventType = (Class<? extends Event>) eventT;
+                    Class<? extends Event> eventType = AbilityEventHandler.getEventParameter(method);
                     AbilityEventList list = AbilityEventHandler.getListenerList(eventType);
 
                     for (AbilityEventEntry eventEntry : Ability.getAbilityEventRegistry().getValues())
@@ -140,7 +135,7 @@ class AbilityEventHandler
         }
     }
 
-    private static Class<?> getEventParameter(Method method)
+    private static Class<? extends Event> getEventParameter(Method method)
     {
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length != 1)
@@ -152,7 +147,11 @@ class AbilityEventHandler
         }
 
         Class<?> eventT = parameterTypes[0];
-        return eventT;
+
+        if (!Event.class.isAssignableFrom(eventT))
+            throw new IllegalArgumentException("Ability method " + method + " has @SubscribeEvent annotation, but takes a argument that is not an Event " + eventT);
+
+        return (Class<? extends Event>) eventT;
     }
 
     @SubscribeEvent
