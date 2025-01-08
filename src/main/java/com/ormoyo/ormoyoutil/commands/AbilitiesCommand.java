@@ -30,7 +30,9 @@ public class AbilitiesCommand
             return -1;
         }
 
-        Set<String> names = abilityHolder.getAbilities().stream().map(ability -> Ability.getAbilityDisplayName(ability.getClass()).getString()).collect(Collectors.toSet());
+        Set<String> names = abilityHolder.getAbilities().stream()
+                .map(ability -> Ability.getAbilityDisplayName(ability.getClass()).getString())
+                .collect(Collectors.toSet());
         source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.abilities", names), true);
 
         return 1;

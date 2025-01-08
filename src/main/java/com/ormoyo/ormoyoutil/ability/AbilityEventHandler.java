@@ -30,7 +30,6 @@ import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.common.capabilities.Capability;
@@ -93,7 +92,6 @@ class AbilityEventHandler
     static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
     static Multimap<AbilityEntry<?>, AbilityEntryBuilder.AbilityKeybinding> KEYBINDINGS_TO_REGISTER = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> HashMultimap::create);
-    static IdentityHashMap<Class<? extends Ability>, ITextComponent> ABILITY_DISPLAY_NAMES;
 
     static IForgeRegistry<AbilityEntry<?>> ABILITY_REGISTRY;
     static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;
@@ -363,11 +361,7 @@ class AbilityEventHandler
         @SubscribeEvent
         public static void onCommonSetup(FMLCommonSetupEvent event)
         {
-            event.enqueueWork(() ->
-            {
-                AbilityEventHandler.onInit();
-                ABILITY_DISPLAY_NAMES = new IdentityHashMap<>(ABILITY_REGISTRY.getEntries().size());
-            });
+            event.enqueueWork(AbilityEventHandler::onInit);
         }
 
         @SubscribeEvent

@@ -29,8 +29,6 @@ public abstract class Ability
         this.entry = Ability.getAbilityClassEntry(this.getClass());
 
         this.syncManager = new AbilitySyncManager(this);
-        AbilityEventHandler.ABILITY_DISPLAY_NAMES.put(this.getClass(), this.getTranslatedName());
-
         this.abilityInit();
     }
 
@@ -118,20 +116,14 @@ public abstract class Ability
         return this.owner;
     }
 
-    public String getName()
+    public ITextComponent getName()
     {
-        String registryName = String.valueOf(this.entry);
-        return StringUtils.capitalize(registryName.substring(registryName.lastIndexOf(':')));
-    }
-
-    public ITextComponent getTranslatedName()
-    {
-        return new TranslationTextComponent("ability." + this.getRegistryName().getNamespace() + "." + this.getRegistryName().getPath() + ".name");
+        return this.getEntry().getName();
     }
 
     public final ResourceLocation getRegistryName()
     {
-        return this.entry.getRegistryName();
+        return this.getEntry().getRegistryName();
     }
 
     public final AbilityEntry<?> getEntry()
@@ -156,7 +148,7 @@ public abstract class Ability
     @Override
     public String toString()
     {
-        return this.getName();
+        return this.getRegistryName().toString();
     }
 
     @Override
@@ -200,9 +192,10 @@ public abstract class Ability
         return AbilityEventHandler.ABILITY_EVENT_REGISTRY;
     }
 
-    public static ITextComponent getAbilityDisplayName(Class<? extends Ability> clazz)
+    public static<T extends Ability> ITextComponent getAbilityDisplayName(Class<T> clazz)
     {
-        return AbilityEventHandler.ABILITY_DISPLAY_NAMES.get(clazz);
+        AbilityEntry<T> entry = Ability.getAbilityClassEntry(clazz);
+        return entry != null ? entry.getName() : null;
     }
 
     public static Capability<AbilityHolder> getAbilityCapability()

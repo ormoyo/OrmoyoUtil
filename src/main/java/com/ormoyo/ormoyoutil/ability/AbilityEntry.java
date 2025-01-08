@@ -4,6 +4,9 @@ import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.client.GameSettings;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Util;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
@@ -102,6 +105,14 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     public List<Integer> getKeyBindingIndices()
     {
         return Collections.unmodifiableList(this.keyBindingIndices);
+    }
+
+    private ITextComponent name;
+    public ITextComponent getName()
+    {
+        return this.name == null ?
+                (this.name = new TranslationTextComponent(Util.makeTranslationKey("ability", this.getRegistryName()))) :
+                this.name;
     }
 
     @Override
