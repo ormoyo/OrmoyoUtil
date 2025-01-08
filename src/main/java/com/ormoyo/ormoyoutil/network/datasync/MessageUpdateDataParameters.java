@@ -26,7 +26,7 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
 {
     private final int targetedPlayerId;
 
-    private final AbilityEntry entry;
+    private final AbilityEntry<?> entry;
     private final Collection<AbilityDataEntry<?>> entries;
 
     public MessageUpdateDataParameters(Ability ability)
@@ -34,7 +34,7 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
         this(ability.getOwner().getEntityId(), ability.getEntry(), ability.getSyncManager().getDirty());
     }
 
-    private MessageUpdateDataParameters(int targetedPlayerId, AbilityEntry entry, Collection<AbilityDataEntry<?>> values)
+    private MessageUpdateDataParameters(int targetedPlayerId, AbilityEntry<?> entry, Collection<AbilityDataEntry<?>> values)
     {
         this.targetedPlayerId = targetedPlayerId;
 
@@ -47,7 +47,7 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
         buffer.writeVarInt(this.targetedPlayerId);
 
         buffer.writeRegistryIdUnsafe(Ability.getAbilityRegistry(), this.entry);
-        this.writeEntries(buffer, this.entries);
+        this.writeEntries(buffer);
     }
 
     @NetworkDecoder(MessageUpdateDataParameters.class)
@@ -55,7 +55,7 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
     {
         int targetedPlayerId = buffer.readVarInt();
 
-        AbilityEntry entry = buffer.readRegistryIdUnsafe(Ability.getAbilityRegistry());
+        AbilityEntry<?> entry = buffer.readRegistryIdUnsafe(Ability.getAbilityRegistry());
         Collection<AbilityDataEntry<?>> entries = readEntries(buffer);
 
         return new MessageUpdateDataParameters(targetedPlayerId, entry, entries);
@@ -75,7 +75,7 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
     {
     }
 
-    private void writeEntries(PacketBuffer buffer, Collection<AbilityDataEntry<?>> values)
+    private void writeEntries(PacketBuffer buffer)
     {
         buffer.writeVarInt(this.entries.size());
         for (AbilityDataEntry<?> value : this.entries)

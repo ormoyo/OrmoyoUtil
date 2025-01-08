@@ -16,14 +16,14 @@ import java.util.Objects;
 public class MessageUnlockAbility extends AbstractMessage<MessageUnlockAbility>
 {
     private final int targetedPlayerId;
-    private final AbilityEntry entry;
+    private final AbilityEntry<?> entry;
 
-    public MessageUnlockAbility(AbilityHolder holder, AbilityEntry abilityEntry)
+    public MessageUnlockAbility(AbilityHolder holder, AbilityEntry<?> abilityEntry)
     {
         this(holder.asPlayer().getEntityId(), abilityEntry);
     }
 
-    private MessageUnlockAbility(int targetedPlayerId, AbilityEntry abilityEntry)
+    private MessageUnlockAbility(int targetedPlayerId, AbilityEntry<?> abilityEntry)
     {
         this.targetedPlayerId = targetedPlayerId;
         this.entry = abilityEntry;
@@ -40,7 +40,7 @@ public class MessageUnlockAbility extends AbstractMessage<MessageUnlockAbility>
     public static MessageUnlockAbility decode(PacketBuffer buffer)
     {
         int targetedPlayerId = buffer.readVarInt();
-        AbilityEntry entry = buffer.readRegistryId();
+        AbilityEntry<?> entry = buffer.readRegistryId();
 
         return new MessageUnlockAbility(targetedPlayerId, entry);
     }
