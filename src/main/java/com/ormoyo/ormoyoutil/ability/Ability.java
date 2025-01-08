@@ -134,7 +134,7 @@ public abstract class Ability
         return this.entry.getRegistryName();
     }
 
-    public final AbilityEntry getEntry()
+    public final AbilityEntry<?> getEntry()
     {
         return this.entry;
     }

@@ -22,43 +22,16 @@ public abstract class AbilityKeybindingBase extends Ability
     static final BiMap<String, Integer> KEYBIND_IDS = HashBiMap.create();
     final Map<String, MutableBoolean> hasBeenPressed = new NonNullMap<>(MutableBoolean::new, true);
 
-    @OnlyIn(Dist.CLIENT)
-    private KeyBinding mainKeybind;
-
     public AbilityKeybindingBase(AbilityHolder owner)
     {
         super(owner);
-
-        AbilityEventHandler.ClientEventHandler.currentConstruct = this;
-        DistExecutor.safeRunWhenOn(Dist.CLIENT, () -> AbilityEventHandler.ClientEventHandler::onKeybindBaseConstruct);
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> AbilityEventHandler.ClientEventHandler.onKeybindBaseConstruct(this));
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
     public void tick()
     {
-        if (!this.owner.world.isRemote)
-            return;
-
-        for (KeyBinding keybind : this.getKeybinds())
-        {
-            String keyName = this.getKeybindName(keybind);
-
-            if (this instanceof AbilityCooldown && ((AbilityCooldown) this).isOnCooldown(keyName))
-                continue;
-
-            MutableBoolean hasBeenPressed = this.hasBeenPressed.get(keyName);
-            if (keybind.isKeyDown() && !hasBeenPressed.booleanValue())
-            {
-                this.onKeyPress(keyName);
-                hasBeenPressed.setTrue();
-            }
-            else if (!keybind.isKeyDown() && hasBeenPressed.booleanValue())
-            {
-                this.onKeyRelease(keyName);
-                hasBeenPressed.setFalse();
-            }
-        }
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHandler.clientTick(this));
     }
 
     /**
@@ -132,7 +105,7 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeyBindings()
     {
-        return keyBindings != null ? (keyBindings = AbilityKeybindingBase.createKeybindingsFromRegistry(this)) : null;
+        return keyBindings != null ? (keyBindings = ClientHandler.createKeybindingsFromRegistry(this)) : null;
     }
 
     public static int convertKeyToId(String keybind)
@@ -143,17 +116,6 @@ public abstract class AbilityKeybindingBase extends Ability
     public static String convertIdToKey(int id)
     {
         return KEYBIND_IDS.inverse().get(id);
-    }
-
-    private static KeyBinding[] createKeybindingsFromRegistry(AbilityKeybindingBase ability)
-    {
-        List<Integer> indices = ability.getEntry().getKeyBindingIndices();
-        KeyBinding[] keybindings = new KeyBinding[indices.size()];
-
-        for (int i = 0; i < keybindings.length; i++)
-            keybindings[i] = Minecraft.getInstance().gameSettings.keyBindings[indices.get(i)];
-
-        return keybindings;
     }
 
     private static class ClientHandler

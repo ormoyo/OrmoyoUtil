@@ -32,7 +32,6 @@ import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.*;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
@@ -49,6 +48,7 @@ import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IGenericEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
@@ -90,7 +90,6 @@ class AbilityEventHandler
 
     static final Collection<Class<? extends Ability>> CLIENT_ABILITIES = Sets.newHashSet();
     static final Collection<Class<? extends Ability>> SERVER_ABILITIES = Sets.newHashSet();
-
     static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
     static Multimap<AbilityEntry<?>, AbilityEntryBuilder.AbilityKeybinding> KEYBINDINGS_TO_REGISTER = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> HashMultimap::create);
@@ -299,28 +298,30 @@ class AbilityEventHandler
             }
         }
 
-        static AbilityKeybindingBase currentConstruct;
-        public static void onKeybindBaseConstruct()
+        public static void onKeybindBaseConstruct(AbilityKeybindingBase ability)
         {
-            if (currentConstruct == null)
-                return;
-
             if (Minecraft.getInstance().getConnection() == null)
                 return;
 
             if (EffectiveSide.get().isServer())
                 return;
 
-            for (KeyBinding keybind : currentConstruct.getKeybinds())
+            for (KeyBinding keybind : ability.getKeyBindings())
             {
-                KeyBinding key = currentConstruct.getKeybind();
-                if (key != null && Objects.equals(key.getKeyDescription(), keybind.getKeyDescription()))
+                if (keybind == null)
                 {
-                    currentConstruct.hasBeenPressed.put(null, new MutableBoolean());
+                    OrmoyoUtil.LOGGER.warn("Ability {} has null keybindings", ability.getRegistryName());
                     continue;
                 }
 
-                currentConstruct.hasBeenPressed.put(keybind.getKeyDescription(), new MutableBoolean());
+                KeyBinding key = ability.getKeybind();
+                if (key != null && Objects.equals(key.getKeyDescription(), keybind.getKeyDescription()))
+                {
+                    ability.hasBeenPressed.put(null, new MutableBoolean());
+                    continue;
+                }
+
+                ability.hasBeenPressed.put(keybind.getKeyDescription(), new MutableBoolean());
                 AbilityKeybindingBase.KEYBIND_IDS.put(keybind.getKeyDescription(), AbilityKeybindingBase.KEYBIND_IDS.size() + 1);
             }
 
@@ -328,7 +329,22 @@ class AbilityEventHandler
                 return;
 
             OrmoyoUtil.NETWORK_CHANNEL.sendToServer(new MessageSetAbilityKeys(AbilityKeybindingBase.KEYBIND_IDS));
-            currentConstruct = null;
+        }
+
+        public static void registerAbilityEventPredicatesOnClient(RegistryEvent.Register<AbilityEventEntry> event)
+        {
+            ModBusEventHandler.register(event, FontRenderEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, TickEvent.ClientTickEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, TickEvent.RenderTickEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, RenderGameOverlayEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, EntityViewRenderEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, InputEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, GuiScreenEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, GuiOpenEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, RenderHandEvent.class, ModBusEventHandler.ClientEventPredicates.defaultClientPredicate());
+            ModBusEventHandler.register(event, RenderLivingEvent.class, ModBusEventHandler.ClientEventPredicates.RENDER_LIVING_EVENT);
+            ModBusEventHandler.register(event, RenderArmEvent.class, ModBusEventHandler.ClientEventPredicates.RENDER_ARM_EVENT);
+            ModBusEventHandler.register(event, ClientPlayerNetworkEvent.class, ModBusEventHandler.ClientEventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
         }
     }
 
@@ -340,7 +356,7 @@ class AbilityEventHandler
         {
             for (ModFileScanData scanData : ModList.get().getAllScanData())
             {
-                registerAbilitiesOnSide(scanData);
+                ModBusEventHandler.registerAbilitiesOnSide(scanData);
             }
         }
 
@@ -508,24 +524,8 @@ class AbilityEventHandler
             register(event, LivingAttackEvent.class, EventPredicates.LIVING_ATTACK_EVENT);
             register(event, LivingDeathEvent.class, EventPredicates.LIVING_DEATH_EVENT);
             register(event, ProjectileImpactEvent.class, EventPredicates.PROJECTILE_IMPACT_EVENT);
-        }
 
-        @SubscribeEvent
-        @OnlyIn(Dist.CLIENT)
-        public static void registerAbilityEventPredicatesOnClient(RegistryEvent.Register<AbilityEventEntry> event)
-        {
-            register(event, FontRenderEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, TickEvent.ClientTickEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, TickEvent.RenderTickEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, RenderGameOverlayEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, EntityViewRenderEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, InputEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, GuiScreenEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, GuiOpenEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, RenderHandEvent.class, ClientEventPredicates.defaultClientPredicate());
-            register(event, RenderLivingEvent.class, ClientEventPredicates.RENDER_LIVING_EVENT);
-            register(event, RenderArmEvent.class, ClientEventPredicates.RENDER_ARM_EVENT);
-            register(event, ClientPlayerNetworkEvent.class, ClientEventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientEventHandler.registerAbilityEventPredicatesOnClient(event));
         }
 
         private static <T extends Event> void register(RegistryEvent.Register<AbilityEventEntry> event, Class<T> clazz, AbilityEventPredicate<T> predicate)
@@ -578,10 +578,8 @@ class AbilityEventHandler
                                             ((EntityRayTraceResult) event.getRayTraceResult()).getEntity() : null);
         }
 
-        @OnlyIn(Dist.CLIENT)
         public static class ClientEventPredicates
         {
-
             private static <T extends Event> AbilityEventPredicate<T> defaultClientPredicate()
             {
                 return (ability, event) ->
