@@ -2,6 +2,8 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.util.NonNullMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -11,6 +13,8 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class AbilityCooldown extends AbilityKeybindingBase
 {
+    static final Object2IntMap<String> COOLDOWNS = new Object2IntOpenCustomHashMap<>(new KeyHashStrategy());
+
     private final Map<String, MutableInt> cooldownTicks = new NonNullMap<>(MutableInt::new, true);
     private final Map<String, MutableBoolean> isOnCooldown = new NonNullMap<>(MutableBoolean::new, true);
 
@@ -38,11 +42,10 @@ public abstract class AbilityCooldown extends AbilityKeybindingBase
         }
     }
 
-    /**
-     * @param keybind The keybind description. If it's the key returned by {@link #getKeybinding()} ()} then this will be null.
-     * @return The specific cooldown in ticks for the keybind
-     */
-    public abstract int getCooldown(@Nullable String keybind);
+    public int getCooldown(@Nullable String keybind)
+    {
+        return COOLDOWNS.getInt(keybind);
+    }
 
     protected void setIsOnCooldown(@Nullable String keybind, boolean isOnCooldown)
     {

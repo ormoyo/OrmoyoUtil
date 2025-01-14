@@ -129,11 +129,6 @@ class AbilityEventHandler
                         AbilityEventListenerImpl listener = null;
                         try
                         {
-                            AbilityEventListenerImpl listener = new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType));
-                            list.register(listener.getPriority(), listener);
-                        }
-                    }
-                }
                             listener = new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType));
                         } catch (ReflectiveOperationException e)
                         {
@@ -142,6 +137,13 @@ class AbilityEventHandler
                         list.register(listener.getPriority(), listener);
                     }
                 }
+
+                if (!AbilityCooldown.class.isAssignableFrom(entry.getAbilityClass()))
+                    continue;
+
+                List<AbilityEntry.KeyBinding> keyBindings = entry.getKeyBindings();
+                for (AbilityEntry.KeyBinding keyBinding : keyBindings)
+                    AbilityCooldown.COOLDOWNS.put(keyBinding.getDescription(), keyBinding.getCooldown());
             }
         }
         catch (ReflectiveOperationException e)
