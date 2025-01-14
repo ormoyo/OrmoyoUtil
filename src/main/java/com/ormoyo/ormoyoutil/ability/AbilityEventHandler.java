@@ -101,6 +101,13 @@ class AbilityEventHandler
     {
         try
         {
+            CLASSES_TO_ENTRIES = new HashMap<>(ABILITY_REGISTRY.getValues().size());
+
+            for (AbilityEntry<?> entry : ABILITY_REGISTRY.getValues())
+            {
+                CLASSES_TO_ENTRIES.put(entry.getAbilityClass(), entry);
+            }
+
             for (AbilityEntry entry : Ability.getAbilityRegistry())
             {
                 // || Constructor ||

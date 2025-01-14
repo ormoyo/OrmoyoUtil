@@ -145,6 +145,7 @@ public abstract class Ability
         return this.getEntry().getRegistryName();
     }
 
+    @Nonnull
     public final AbilityEntry<?> getEntry()
     {
         return this.entry;
@@ -207,11 +208,7 @@ public abstract class Ability
     @SuppressWarnings("unchecked")
     public static<T extends Ability> AbilityEntry<T> getAbilityClassEntry(Class<T> clazz)
     {
-        for (AbilityEntry<?> entry : Ability.getAbilityRegistry().getValues())
-            if (entry.getAbilityClass() == clazz)
-                return (AbilityEntry<T>) entry;
-
-        return null;
+        return (AbilityEntry<T>) AbilityEventHandler.CLASSES_TO_ENTRIES.get(clazz);
     }
 
     public static IForgeRegistry<AbilityEntry<?>> getAbilityRegistry()
