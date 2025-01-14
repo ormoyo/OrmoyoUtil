@@ -38,12 +38,21 @@ public abstract class Ability
     protected final AbilitySyncManager syncManager;
 
     protected final PlayerEntity owner;
+    private int messagesCheckingTicks;
 
-    /**
+    /*
      * Called every tick
      */
     public void tick()
     {
+        if (this.messagesCheckingTicks > 0)
+        {
+            this.messagesCheckingTicks--;
+            return;
+        }
+
+        this.messagesCheckingTicks = this.getMessagesCheckingTime();
+        this.getHolder().handleMessagesFor(this.getEntry().getAbilityClass());
     }
 
     /**
@@ -136,12 +145,25 @@ public abstract class Ability
         return this.syncManager;
     }
 
-    protected final void sendMessageToAbility(Ability ability, AbilityMessage message)
+    public int getMessagesCheckingTime()
     {
-        ability.getMessageFromAbility(this, message);
+        return 20;
     }
 
-    protected void getMessageFromAbility(Ability sender, AbilityMessage message)
+    /**
+     * Sends a message to an ability the owner has (If they don't the message will be queued until the ability is unlocked). </p>
+     * This is the recommended way for inter ability communications (and for handling abilities that may not have been unlocked yet). </br></br>
+     * If you need something to do with another ability right now then you can access it from the {@link AbilityHolder} and check if it's not null
+     * @param ability The class of the ability to send the message to
+     * @param message The message
+     */
+    protected final void sendMessageToAbility(Class<? extends Ability> ability, AbilityMessage message)
+    {
+        message = new AbilityMessage(this, message.getKey(), message.getValue());
+        this.getHolder().queueMessageFor(ability, message);
+    }
+
+    public void onMessageFromAbility(AbilityEntry<?> sender, AbilityMessage message)
     {
     }
 

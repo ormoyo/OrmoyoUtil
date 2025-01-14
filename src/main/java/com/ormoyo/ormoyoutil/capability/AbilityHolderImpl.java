@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
+import com.ormoyo.ormoyoutil.ability.util.AbilityMessage;
 import com.ormoyo.ormoyoutil.event.AbilityEvents;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.MessageUnlockAbility;
@@ -15,15 +16,15 @@ import net.minecraftforge.fml.common.thread.EffectiveSide;
 import net.minecraftforge.fml.network.PacketDistributor;
 
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class AbilityHolderImpl implements AbilityHolder
 {
     private static final Class<?> ABILITY_EVENT_HANDLER_CLASS;
 
     protected final Map<Class<? extends Ability>, Ability> abilities = Maps.newHashMap();
+    protected final Map<Class<? extends Ability>, Collection<AbilityMessage>> queuedMessages = Maps.newHashMap();
+
     protected final PlayerEntity player;
 
     public AbilityHolderImpl()
@@ -47,12 +48,8 @@ public class AbilityHolderImpl implements AbilityHolder
     public <T extends Ability> T getAbility(ResourceLocation resourceLocation)
     {
         for (Ability ability : this.abilities.values())
-        {
             if (Objects.equals(ability.getEntry().getRegistryName(), resourceLocation))
-            {
                 return (T) ability;
-            }
-        }
 
         return null;
     }
@@ -106,6 +103,43 @@ public class AbilityHolderImpl implements AbilityHolder
 
         this.abilities.clear();
         abilities.forEach(this::unlockAbilityInternal);
+    }
+
+    @Override
+    public void queueMessageFor(Class<? extends Ability> ability, AbilityMessage message)
+    {
+        AbilityEvents.MessageQueuedEvent event = new AbilityEvents.MessageQueuedEvent(ability, message);
+        if (MinecraftForge.EVENT_BUS.post(event))
+            return;
+
+        ability = event.getAbilityClass();
+        message = event.getSenderEntry();
+
+        Ability a = this.abilities.get(ability);
+        if (a == null)
+        {
+            Collection<AbilityMessage> messages = this.queuedMessages.computeIfAbsent(ability, k -> new ArrayList<>(3));
+            messages.add(message);
+
+            return;
+        }
+
+        a.onMessageFromAbility(message.getSender(), message);
+    }
+
+    @Override
+    public void handleMessagesFor(Class<? extends Ability> ability)
+    {
+        Collection<AbilityMessage> messages = this.queuedMessages.get(ability);
+        if (messages == null)
+            return;
+
+        Ability a = this.abilities.get(ability);
+        if (a == null)
+            return;
+
+        for (AbilityMessage message : messages)
+            a.onMessageFromAbility(message.getSender(), message);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.ormoyo.ormoyoutil.capability;
 
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
+import com.ormoyo.ormoyoutil.ability.util.AbilityMessage;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.ResourceLocation;
 
@@ -18,6 +19,9 @@ public interface AbilityHolder
     boolean unlockAbility(AbilityEntry<?> entry);
 
     void setAbilities(Collection<Ability> abilities);
+
+    void queueMessageFor(Class<? extends Ability> ability, AbilityMessage message);
+    void handleMessagesFor(Class<? extends Ability> ability);
 
     PlayerEntity asPlayer();
 }

@@ -2,9 +2,11 @@ package com.ormoyo.ormoyoutil.event;
 
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
 import com.ormoyo.ormoyoutil.ability.Ability;
+import com.ormoyo.ormoyoutil.ability.util.AbilityMessage;
 import net.minecraft.entity.LivingEntity;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.Cancelable;
+import net.minecraftforge.eventbus.api.Event;
 
 /**
  * AbilityEvent is fired when an event involving abilities occurs
@@ -97,6 +99,39 @@ public class AbilityEvents extends PlayerEvent
         public OnAbilityUnlockedEvent(Ability ability)
         {
             super(ability);
+        }
+    }
+
+    @Cancelable
+    public static class MessageQueuedEvent extends Event
+    {
+        private Class<? extends Ability> ability;
+        private AbilityMessage message;
+
+        public MessageQueuedEvent(Class<? extends Ability> ability, AbilityMessage message)
+        {
+            this.ability = ability;
+            this.message = message;
+        }
+
+        public Class<? extends Ability> getAbilityClass()
+        {
+            return this.ability;
+        }
+
+        public AbilityMessage getSenderEntry()
+        {
+            return this.message;
+        }
+
+        public void setMessage(AbilityMessage message)
+        {
+            this.message = message;
+        }
+
+        public void redirectMessageTo(Class<? extends Ability> ability)
+        {
+            this.ability = ability;
         }
     }
 
