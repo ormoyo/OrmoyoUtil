@@ -436,9 +436,9 @@ class AbilityEventHandler
                 if (isClientAbility)
                 {
                     Class<? extends Ability> clazz = CONVERT_TO_CLASS.apply(annotationData);
-                    boolean share = (boolean) annotationData.getAnnotationData().get("share");
+                    Boolean share = (Boolean) annotationData.getAnnotationData().get("share");
 
-                    if (share)
+                    if (share != null && share)
                     {
                         SHARED_ABILITIES.add(clazz);
                         SERVER_ABILITIES.add(clazz);
