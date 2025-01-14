@@ -10,7 +10,6 @@ import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.registries.ForgeRegistryEntry;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -30,7 +29,7 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     private final Predicate<AbilityHolder> condition;
     private final int level;
 
-    final List<Integer> keyBindingIndices;
+    final List<KeyBinding> keyBindings;
 
     public AbilityEntry(Class<T> clazz)
     {
@@ -50,11 +49,11 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     @SafeVarargs
     public AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, Class<? extends Event>... conditionCheckingEvents)
     {
-        this(clazz, level, condition, 0, conditionCheckingEvents);
+        this(clazz, level, condition, Collections.EMPTY_LIST, conditionCheckingEvents);
     }
 
     @SafeVarargs
-    AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, int keybindingsCount, Class<? extends Event>... conditionCheckingEvents)
+    AbilityEntry(Class<T> clazz, int level, Predicate<AbilityHolder> condition, List<KeyBinding> keyBindings, Class<? extends Event>... conditionCheckingEvents)
     {
         this.clazz = clazz;
 
@@ -62,7 +61,7 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
         this.conditionCheckingEvents = conditionCheckingEvents == null ? EMPTY_CLASS_ARRAY : conditionCheckingEvents;
 
         this.level = Math.max(level, 0);
-        this.keyBindingIndices = new ArrayList<>(keybindingsCount);
+        this.keyBindings = keyBindings;
     }
 
     public Class<T> getAbilityClass()
@@ -102,9 +101,9 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
      * @implNote If the ability doesn't extend {@link AbilityKeybindingBase} this will always be empty
      * @return The indices of the ability keybindings in {@link GameSettings#keyBindings}
      */
-    public List<Integer> getKeyBindingIndices()
+    public List<KeyBinding> getKeyBindings()
     {
-        return Collections.unmodifiableList(this.keyBindingIndices);
+        return Collections.unmodifiableList(this.keyBindings);
     }
 
     private ITextComponent name;
@@ -141,5 +140,44 @@ public class AbilityEntry<T extends Ability> extends ForgeRegistryEntry<AbilityE
     {
         ResourceLocation name = this.getRegistryName();
         return name != null ? name.hashCode() : 0;
+    }
+
+    public static class KeyBinding
+    {
+        private final int index;
+        private final int cooldown;
+        private final String desc;
+
+        KeyBinding(int index, int cooldown, String desc)
+        {
+            this.index = index;
+            this.cooldown = cooldown;
+            this.desc = desc;
+        }
+
+        public int getIndex()
+        {
+            return this.index;
+        }
+
+        public int getCooldown()
+        {
+            return this.cooldown;
+        }
+
+        public String getDescription()
+        {
+            return this.desc;
+        }
+
+        static class ClientKeyBinding extends KeyBinding
+        {
+            AbilityEntryBuilder.AbilityKeybinding keybinding;
+            ClientKeyBinding(int index, int cooldown, String desc, AbilityEntryBuilder.AbilityKeybinding keybinding)
+            {
+                super(index, cooldown, desc);
+                this.keybinding = keybinding;
+            }
+        }
     }
 }

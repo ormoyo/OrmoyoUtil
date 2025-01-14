@@ -10,7 +10,7 @@ import java.util.Map;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public abstract class HoldAbility extends AbilityCooldown
 {
-    private final Map<String, MutableBoolean> isHolding = new NonNullMap<>(this.getKeybinds().length, MutableBoolean::new, true);
+    private final Map<String, MutableBoolean> isHolding = new NonNullMap<>(this.getKeyBindings().length, MutableBoolean::new, true);
 
     public HoldAbility(AbilityHolder owner)
     {
@@ -20,7 +20,7 @@ public abstract class HoldAbility extends AbilityCooldown
     /**
      * Called when the ability is activated (Usually by a press).
      * @param keybind The specific keybinding being pressed (nykk
-     * @return If the ability has succeeded:<br><strong>success</strong> - the method would be kept called every tick until release, by then the cooldown will start.<br><strong>failure</strong> - the cooldown stays off.
+     * @return If the ability has succeeded:<br><strong>success</strong> - the method would be called every tick until release, after that the cooldown will start.<br><strong>failure</strong> - the cooldown stays off.
      * @implNote <strong>warning</strong> - the returned value will only be evaluated when the player initially presses the keybinding (not on hold)
      */
     public abstract boolean hold(String keybind);

@@ -296,6 +296,39 @@ class AbilityEventHandler
             }
         }
 
+        public static void clientSetup(FMLClientSetupEvent event)
+        {
+            Minecraft mc = event.getMinecraftSupplier().get();
+            for (AbilityEntry<?> abilityEntry : Ability.getAbilityRegistry().getValues())
+            {
+                if (abilityEntry.keyBindings.isEmpty())
+                    continue;
+
+                String namespace = Objects.requireNonNull(abilityEntry.getRegistryName()).getNamespace();
+                List<AbilityEntry.KeyBinding> keys = abilityEntry.keyBindings;
+
+                for (int i = 0; i < keys.size(); i++)
+                {
+                    AbilityEntry.KeyBinding.ClientKeyBinding key = (AbilityEntry.KeyBinding.ClientKeyBinding) keys.get(i);
+                    AbilityEntryBuilder.AbilityKeybinding keybinding = key.keybinding;
+
+                    String desc = "key." + namespace + "." + keybinding.name;
+                    ClientRegistry.registerKeyBinding(new KeyBinding(
+                            desc,
+                            keybinding.context,
+                            keybinding.modifier,
+                            InputMappings.Type.valueOf(keybinding.type.desc),
+                            keybinding.code,
+                            "key." + namespace + ".category"));
+
+                    AbilityEntry.KeyBinding entryKey = abilityEntry.keyBindings.get(i);
+                    int index = mc.gameSettings.keyBindings.length - 1;
+
+                    abilityEntry.keyBindings.set(i, new AbilityEntry.KeyBinding(index, entryKey.getCooldown(), desc));
+                }
+            }
+        }
+
         public static void onKeybindBaseConstruct(AbilityKeybindingBase ability)
         {
             if (Minecraft.getInstance().getConnection() == null)
@@ -367,28 +400,7 @@ class AbilityEventHandler
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
-            event.enqueueWork(() ->
-            {
-                Minecraft mc = event.getMinecraftSupplier().get();
-                for (Map.Entry<AbilityEntry<?>, Collection<AbilityEntryBuilder.AbilityKeybinding>> keybindings : KEYBINDINGS_TO_REGISTER.asMap().entrySet())
-                {
-                    String namespace = Objects.requireNonNull(keybindings.getKey().getRegistryName()).getNamespace();
-                    for (AbilityEntryBuilder.AbilityKeybinding keybinding : keybindings.getValue())
-                    {
-                        ClientRegistry.registerKeyBinding(new KeyBinding(
-                                "key." + namespace + "." + keybinding.name,
-                                keybinding.context,
-                                keybinding.modifier,
-                                InputMappings.Type.valueOf(keybinding.type.desc),
-                                keybinding.code,
-                                "key." + namespace + ".category"));
-
-                        keybindings.getKey().keyBindingIndices.add(mc.gameSettings.keyBindings.length - 1);
-                    }
-                }
-
-                KEYBINDINGS_TO_REGISTER = null;
-            });
+            event.enqueueWork(() -> ClientEventHandler.clientSetup(event));
         }
 
         private static void registerAbilitiesOnSide(ModFileScanData scanData)

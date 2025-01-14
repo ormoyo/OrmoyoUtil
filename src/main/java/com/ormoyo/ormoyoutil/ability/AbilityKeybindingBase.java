@@ -98,7 +98,7 @@ public abstract class AbilityKeybindingBase extends Ability
     @OnlyIn(Dist.CLIENT)
     public KeyBinding[] getKeyBindings()
     {
-        return keyBindings != null ? (keyBindings = ClientHandler.createKeybindingsFromRegistry(this)) : new KeyBinding[0];
+        return keyBindings == null ? (keyBindings = ClientHandler.createKeybindingsFromRegistry(this)) : keyBindings;
     }
 
     public static int convertKeyToId(String keybind)
@@ -141,13 +141,13 @@ public abstract class AbilityKeybindingBase extends Ability
 
         private static KeyBinding[] createKeybindingsFromRegistry(AbilityKeybindingBase ability)
         {
-            List<Integer> indices = ability.getEntry().getKeyBindingIndices();
-            KeyBinding[] keybindings = new KeyBinding[indices.size()];
+            List<AbilityEntry.KeyBinding> indices = ability.getEntry().getKeyBindings();
+            KeyBinding[] keyBindings = new KeyBinding[indices.size()];
 
-            for (int i = 0; i < keybindings.length; i++)
-                keybindings[i] = Minecraft.getInstance().gameSettings.keyBindings[indices.get(i)];
+            for (int i = 0; i < keyBindings.length; i++)
+                keyBindings[i] = Minecraft.getInstance().gameSettings.keyBindings[indices.get(i).getIndex()];
 
-            return keybindings;
+            return keyBindings;
         }
     }
 }

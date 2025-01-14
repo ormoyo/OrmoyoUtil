@@ -2,9 +2,12 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.client.settings.KeyModifier;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.common.thread.EffectiveSide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +21,7 @@ public final class AbilityEntryBuilder<T extends Ability>
     private Class<? extends Event>[] conditionCheckingEvents;
     private ResourceLocation location;
 
-    private final List<AbilityKeybinding> keybindings = new ArrayList<>(3);
+    private final List<AbilityEntry.KeyBinding> keyBindings = new ArrayList<>(3);
 
     private int level;
 
@@ -77,37 +80,56 @@ public final class AbilityEntryBuilder<T extends Ability>
 
     public AbilityEntryBuilder<T> keybinding(String name, int code)
     {
-        this.keybindings.add(new AbilityKeybinding(name, code));
-        return this;
+        return this.keybinding(name, code, 0);
     }
 
     public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier)
     {
-        this.keybindings.add(new AbilityKeybinding(name, code, modifier));
-        return this;
+        return this.keybinding(name, code, modifier, 0);
     }
 
     public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier, InputType type)
     {
-        this.keybindings.add(new AbilityKeybinding(name, code, modifier, type));
-        return this;
+        return this.keybinding(name, code, modifier, type, 0);
     }
 
     public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier, InputType type, KeyConflictContext conflictContext)
     {
-        this.keybindings.add(new AbilityKeybinding(name, code, modifier, type, conflictContext));
+        return this.keybinding(name, code, modifier, type, conflictContext, 0);
+    }
+
+    public AbilityEntryBuilder<T> keybinding(String name, int code, int cooldown)
+    {
+        return this.keybinding(name, code, KeyModifier.NONE, 0);
+    }
+
+    public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier, int cooldown)
+    {
+        return this.keybinding(name, code, modifier, InputType.KEYBOARD, 0);
+    }
+
+    public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier, InputType type, int cooldown)
+    {
+        return this.keybinding(name, code, modifier, type, KeyConflictContext.IN_GAME, 0);
+    }
+
+    public AbilityEntryBuilder<T> keybinding(String name, int code, KeyModifier modifier, InputType type, KeyConflictContext conflictContext, int cooldown)
+    {
+        AbilityKeybinding abilityKeybinding = new AbilityKeybinding(name, code, modifier, type, conflictContext, cooldown);
+
+        AbilityEntry.KeyBinding keybinding =
+                EffectiveSide.get().isServer() ? new AbilityEntry.KeyBinding(-1, cooldown, null) :
+                DistExecutor.unsafeCallWhenOn(Dist.CLIENT, () -> () -> new AbilityEntry.KeyBinding.ClientKeyBinding(-1, cooldown, null, abilityKeybinding));
+
+        this.keyBindings.add(keybinding);
         return this;
     }
 
     public AbilityEntry<T> build()
     {
-        AbilityEntry<T> entry = new AbilityEntry<>(this.clazz, this.level, this.condition, this.keybindings.size(), this.conditionCheckingEvents);
+        AbilityEntry<T> entry = new AbilityEntry<>(this.clazz, this.level, this.condition, this.keyBindings, this.conditionCheckingEvents);
         if (location != null)
             entry.setRegistryName(this.location);
-
-        if (AbilityEventHandler.KEYBINDINGS_TO_REGISTER != null)
-            for (AbilityKeybinding keybinding : this.keybindings)
-                AbilityEventHandler.KEYBINDINGS_TO_REGISTER.put(entry, keybinding);
 
         return entry;
     }
@@ -133,22 +155,7 @@ public final class AbilityEntryBuilder<T extends Ability>
         final InputType type;
         final KeyConflictContext context;
 
-        AbilityKeybinding(String name, int code)
-        {
-            this(name, code, KeyModifier.NONE);
-        }
-
-        AbilityKeybinding(String name, int code, KeyModifier modifier)
-        {
-            this(name, code, modifier, InputType.KEYBOARD);
-        }
-
-        AbilityKeybinding(String name, int code, KeyModifier modifier, InputType type)
-        {
-            this(name, code, modifier, type, KeyConflictContext.IN_GAME);
-        }
-
-        AbilityKeybinding(String name, int code, KeyModifier modifier, InputType type, KeyConflictContext conflictContext)
+        AbilityKeybinding(String name, int code, KeyModifier modifier, InputType type, KeyConflictContext conflictContext, int cooldown)
         {
             this.name = name;
             this.code = code;
