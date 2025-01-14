@@ -69,7 +69,7 @@ public class AbilityHolderImpl implements AbilityHolder
         boolean isUnlocked = this.unlockAbilityInternal(ability);
         if (isUnlocked)
         {
-            if (MinecraftForge.EVENT_BUS.post(new AbilityEvents.OnAbilityUnlockedEvent(ability)))
+            if (MinecraftForge.EVENT_BUS.post(new AbilityEvents.AbilityUnlockedEvent(ability)))
             {
                 this.abilities.remove(ability.getClass());
                 return false;
