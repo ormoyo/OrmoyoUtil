@@ -10,13 +10,11 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.registries.IForgeRegistry;
-import org.apache.commons.lang3.StringUtils;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Objects;
 
 public abstract class Ability
 {
@@ -112,7 +110,8 @@ public abstract class Ability
 
     public boolean isServerAbility()
     {
-        return AbilityEventHandler.SERVER_ABILITIES.contains(this.getEntry().getAbilityClass());
+        return AbilityEventHandler.SERVER_ABILITIES.contains(this.getEntry().getAbilityClass()) ||
+               this.isSharedByClients();
     }
 
     public boolean isClientAbility()
@@ -202,7 +201,7 @@ public abstract class Ability
     @Override
     public int hashCode()
     {
-        return Objects.hash(entry, owner);
+        return 31 * this.entry.hashCode() + this.holder.asPlayer().hashCode();
     }
 
     @SuppressWarnings("unchecked")

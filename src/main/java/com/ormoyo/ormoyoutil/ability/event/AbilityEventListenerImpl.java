@@ -29,7 +29,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
     private static final ASMClassLoader LOADER = new ASMClassLoader();
     private static final Map<Method, Class<?>> cache = Maps.newHashMap();
 
-    private final AbilityEntry target;
+    private final AbilityEntry<?> target;
     private final Method method;
     private final Class<T> eventClass;
     private final AbilityEventPredicate<T> predicate;
@@ -39,7 +39,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
     private final String readable;
     private java.lang.reflect.Type filter = null;
 
-    public AbilityEventListenerImpl(AbilityEntry target, Method method, Class<T> eventClass, AbilityEventPredicate<T> predicate, boolean isGeneric) throws ReflectiveOperationException
+    public AbilityEventListenerImpl(AbilityEntry<?> target, Method method, Class<T> eventClass, AbilityEventPredicate<T> predicate, boolean isGeneric) throws ReflectiveOperationException
     {
         this.target = target;
 
@@ -92,7 +92,7 @@ public class AbilityEventListenerImpl<T extends Event> implements AbilityEventLi
     }
 
     @Override
-    public AbilityEntry getAbilityEntry()
+    public AbilityEntry<?> getAbilityEntry()
     {
         return this.target;
     }

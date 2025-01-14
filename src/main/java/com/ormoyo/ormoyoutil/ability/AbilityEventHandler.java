@@ -76,7 +76,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 @Mod.EventBusSubscriber(modid = OrmoyoUtil.MODID)
@@ -85,15 +84,15 @@ class AbilityEventHandler
     @CapabilityInject(AbilityHolder.class)
     public static final Capability<AbilityHolder> ABILITY_HOLDER_CAPABILITY = null;
 
-    private static final FastMap<Class<? extends Event>, AbilityEventList> LISTENERS = new FastMap<>(128);
+    private static final FastMap<Class<? extends Event>, AbilityEventList> LISTENERS = new FastMap<>(64);
 
-    static final Collection<Class<? extends Ability>> CLIENT_ABILITIES = Sets.newHashSet();
-    static final Collection<Class<? extends Ability>> SERVER_ABILITIES = Sets.newHashSet();
-    static final Collection<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
+    static final Set<Class<? extends Ability>> CLIENT_ABILITIES = Sets.newHashSet();
+    static final Set<Class<? extends Ability>> SERVER_ABILITIES = Sets.newHashSet();
+    static final Set<Class<? extends Ability>> SHARED_ABILITIES = Sets.newHashSet();
 
-    static Multimap<AbilityEntry<?>, AbilityEntryBuilder.AbilityKeybinding> KEYBINDINGS_TO_REGISTER = DistExecutor.safeCallWhenOn(Dist.CLIENT, () -> HashMultimap::create);
+    static Map<Class<? extends Ability>, AbilityEntry<?>> CLASSES_TO_ENTRIES;
 
-    static IForgeRegistry<AbilityEntry<?>> ABILITY_REGISTRY;
+    static ForgeRegistry<AbilityEntry<?>> ABILITY_REGISTRY;
     static IForgeRegistry<AbilityEventEntry> ABILITY_EVENT_REGISTRY;
 
     @SuppressWarnings("ConstantConditions")
@@ -101,34 +100,45 @@ class AbilityEventHandler
     {
         try
         {
+            ABILITY_REGISTRY.freeze();
             CLASSES_TO_ENTRIES = new HashMap<>(ABILITY_REGISTRY.getValues().size());
 
-            for (AbilityEntry<?> entry : ABILITY_REGISTRY.getValues())
+            for (AbilityEntry<?> entry : Ability.getAbilityRegistry())
             {
                 CLASSES_TO_ENTRIES.put(entry.getAbilityClass(), entry);
-            }
 
-            for (AbilityEntry entry : Ability.getAbilityRegistry())
-            {
-                // || Constructor ||
                 Constructor<? extends Ability> constructor = entry.getAbilityClass().getConstructor(AbilityHolder.class);
                 entry.abilityConstructor = ASMUtils.createConstructorCallback(Function.class, constructor);
 
-                // || Methods ||
-                Collection<Method> eventMethods = Stream.of(entry.getAbilityClass().getMethods()).filter(method -> method.isAnnotationPresent(SubscribeEvent.class)).collect(Collectors.toSet());
-
-                for (Method method : eventMethods)
+                for (Method method : entry.getAbilityClass().getMethods())
                 {
+                    if (!method.isAnnotationPresent(SubscribeEvent.class))
+                        continue;
+
                     Class<? extends Event> eventType = AbilityEventHandler.getEventParameter(method);
                     AbilityEventList list = AbilityEventHandler.getListenerList(eventType);
 
                     for (AbilityEventEntry eventEntry : Ability.getAbilityEventRegistry().getValues())
                     {
-                        if (eventType.isAssignableFrom(eventEntry.getEventClass()) || eventEntry.getEventClass().isAssignableFrom(eventType))
+                        if (!eventType.isAssignableFrom(eventEntry.getEventClass()))
+                            continue;
+                        if (!eventEntry.getEventClass().isAssignableFrom(eventType))
+                            continue;
+
+                        AbilityEventListenerImpl listener = null;
+                        try
                         {
                             AbilityEventListenerImpl listener = new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType));
                             list.register(listener.getPriority(), listener);
                         }
+                    }
+                }
+                            listener = new AbilityEventListenerImpl(entry, method, eventType, eventEntry.getEventPredicate(), IGenericEvent.class.isAssignableFrom(eventType));
+                        } catch (ReflectiveOperationException e)
+                        {
+                            throw new RuntimeException(e);
+                        }
+                        list.register(listener.getPriority(), listener);
                     }
                 }
             }
@@ -181,20 +191,14 @@ class AbilityEventHandler
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event)
     {
         AbilityHolder abilityHolder = Ability.getAbilityHolder(event.getPlayer());
-
         if (abilityHolder == null)
             return;
 
-        Collection<AbilityEntry<?>> abilities = abilityHolder.getAbilities()
-                .stream()
-                .map(Ability::getEntry)
-                .collect(Collectors.toList());
-
         Collection<AbilityEntry<?>> entries = Ability.getAbilityRegistry().getValues()
                 .stream()
-                .filter(entry -> (abilities.contains(entry) ||
-                        (entry.getLevel() <= 1 && (entry.getCondition() == null || entry.getConditionCheckingEvents().length == 0))) &&
-                        AbilityEventHandler.CLIENT_ABILITIES.contains(entry.getAbilityClass()))
+                .filter(entry -> entry.getLevel() <= 1)
+                .filter(entry -> entry.getCondition() == null || entry.getConditionCheckingEvents().length == 0)
+                .filter(entry -> AbilityEventHandler.CLIENT_ABILITIES.contains(entry.getAbilityClass()))
                 .collect(Collectors.toList());
 
         abilityHolder.setAbilities(entries
@@ -222,7 +226,7 @@ class AbilityEventHandler
                     PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
                     new MessageSetAbilities(abilityHolder, abilityHolder.getAbilities().stream()
                             .filter(Ability::isClientAbility)
-                            .filter(ability -> SHARED_ABILITIES.contains(ability.getClass()))
+                            .filter(Ability::isSharedByClients)
                             .map(Ability::getEntry)
                             .collect(Collectors.toList())));
         }
@@ -340,7 +344,6 @@ class AbilityEventHandler
         {
             if (Minecraft.getInstance().getConnection() == null)
                 return;
-
             if (EffectiveSide.get().isServer())
                 return;
 
@@ -360,7 +363,7 @@ class AbilityEventHandler
                 }
 
                 ability.hasBeenPressed.put(keybind.getKeyDescription(), new MutableBoolean());
-                AbilityKeybindingBase.KEYBIND_IDS.put(keybind.getKeyDescription(), AbilityKeybindingBase.KEYBIND_IDS.size() + 1);
+                AbilityKeybindingBase.KEYBIND_IDS.putIfAbsent(keybind.getKeyDescription(), AbilityKeybindingBase.KEYBIND_IDS.size() + 1);
             }
 
             if (AbilityKeybindingBase.KEYBIND_IDS.isEmpty())
@@ -470,9 +473,9 @@ class AbilityEventHandler
         @SubscribeEvent
         public static void onNewRegistry(RegistryEvent.NewRegistry event)
         {
-            ABILITY_REGISTRY = new RegistryBuilder<AbilityEntry<?>>()
+            ABILITY_REGISTRY = (ForgeRegistry<AbilityEntry<?>>) new RegistryBuilder<AbilityEntry<?>>()
                     .setName(new ResourceLocation(OrmoyoUtil.MODID, "ability"))
-                    .setType(c(AbilityEntry.class))
+                    .setType(ASMUtils.castRegistry(AbilityEntry.class))
                     .setIDRange(0, 2048)
                     .allowModification()
                     .add((IForgeRegistry.AddCallback<AbilityEntry<?>>) (owner, stage, id, entry, oldEntry) ->

@@ -4,6 +4,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.crash.CrashReport;
 import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.crash.ReportedException;
@@ -37,7 +39,7 @@ public class AbilitySyncManager
 
     private boolean dirty;
 
-    final Map<Integer, AbilityDataEntry<?>> entries = Maps.newHashMap();
+    final Int2ObjectMap<AbilityDataEntry<?>> entries = new Int2ObjectOpenHashMap<>();
 
     public AbilitySyncManager(Ability ability)
     {

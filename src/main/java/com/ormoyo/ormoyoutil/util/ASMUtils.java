@@ -1,6 +1,7 @@
 package com.ormoyo.ormoyoutil.util;
 
 import com.google.common.collect.Maps;
+import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.GeneratorAdapter;
@@ -38,6 +39,16 @@ public class ASMUtils
     {
         MethodHandle handle = cachedMethods.get(key);
         return (T) handle.invokeExact(args);
+    }
+
+    /**
+     * Used for creating registries with types that have generics<p>
+     * <b>Example:</b> <br>DeferredRegister.create(ASMUtils.castRegistry(AbilityEntry.class), OrmoyoUtil.MODID);
+     */
+    @SuppressWarnings("rawtypes")
+    public static<T extends IForgeRegistryEntry> Class<T> castRegistry(Class<?> clazz)
+    {
+        return (Class<T>) clazz;
     }
 
     /**

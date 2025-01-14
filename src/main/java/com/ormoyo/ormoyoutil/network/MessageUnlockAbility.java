@@ -49,9 +49,10 @@ public class MessageUnlockAbility extends AbstractMessage<MessageUnlockAbility>
     public void onClientReceived(PlayerEntity player, NetworkEvent.Context messageContext)
     {
         PlayerEntity targetedPlayer = (PlayerEntity) player.getEntityWorld().getEntityByID(this.targetedPlayerId);
-
         AbilityHolder abilityHolder = Ability.getAbilityHolder(targetedPlayer);
-        Objects.requireNonNull(abilityHolder).unlockAbility(this.entry);
+
+        assert abilityHolder != null;
+        abilityHolder.unlockAbility(this.entry);
     }
 
     @Override

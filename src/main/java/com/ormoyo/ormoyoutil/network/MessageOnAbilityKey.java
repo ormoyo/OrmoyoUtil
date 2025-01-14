@@ -4,6 +4,7 @@ import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
 import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
@@ -55,10 +56,12 @@ public class MessageOnAbilityKey extends AbstractMessage<MessageOnAbilityKey>
     }
 
     @Override
-    @SuppressWarnings("ConstantConditions")
     public void onServerReceived(MinecraftServer server, PlayerEntity player, NetworkEvent.Context messageContext)
     {
-        Ability ability = Ability.getAbilityHolder(player).getAbility(this.entry.getAbilityClass());
+        AbilityHolder abilityHolder = Ability.getAbilityHolder(player);
+        assert abilityHolder != null;
+
+        Ability ability = abilityHolder.getAbility(this.entry.getAbilityClass());
         if (ability instanceof AbilityKeybindingBase)
         {
             AbilityKeybindingBase keybindingBase = (AbilityKeybindingBase) ability;

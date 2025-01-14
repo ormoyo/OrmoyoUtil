@@ -6,7 +6,9 @@ import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkEvent;
 
@@ -73,7 +75,7 @@ public class MessageSetAbilityKeys extends AbstractMessage<MessageSetAbilityKeys
         BiMap<String, Integer> map = null;
         try
         {
-            if (EffectiveSide.get().isServer())
+            if (EffectiveSide.get().isServer() || FMLEnvironment.dist == Dist.CLIENT)
             {
                 Field mapField = AbilityKeybindingBase.class.getDeclaredField("KEYBIND_IDS");
                 mapField.setAccessible(true);

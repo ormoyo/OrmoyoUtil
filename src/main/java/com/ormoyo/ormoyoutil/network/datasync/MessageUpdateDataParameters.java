@@ -3,6 +3,7 @@ package com.ormoyo.ormoyoutil.network.datasync;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.ability.Ability;
 import com.ormoyo.ormoyoutil.ability.AbilityEntry;
+import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.network.AbstractMessage;
 import com.ormoyo.ormoyoutil.network.NetworkDecoder;
 import com.ormoyo.ormoyoutil.network.NetworkMessage;
@@ -19,7 +20,6 @@ import net.minecraftforge.fml.network.NetworkEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Objects;
 
 @NetworkMessage(modid = OrmoyoUtil.MODID, direction = NetworkDirection.PLAY_TO_CLIENT)
 public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDataParameters>
@@ -65,8 +65,11 @@ public class MessageUpdateDataParameters extends AbstractMessage<MessageUpdateDa
     public void onClientReceived(PlayerEntity player, NetworkEvent.Context messageContext)
     {
         PlayerEntity targetedPlayer = (PlayerEntity) player.getEntityWorld().getEntityByID(this.targetedPlayerId);
-        Ability ability = Objects.requireNonNull(Ability.getAbilityHolder(targetedPlayer)).getAbility(this.entry.getAbilityClass());
+        AbilityHolder abilityHolder = Ability.getAbilityHolder(targetedPlayer);
 
+        assert abilityHolder != null;
+
+        Ability ability = abilityHolder.getAbility(this.entry.getAbilityClass());
         ability.getSyncManager().setEntryValues(this.entries);
     }
 
