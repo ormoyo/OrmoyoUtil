@@ -16,6 +16,7 @@ import org.objectweb.asm.Type;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,24 +36,28 @@ public class NetworkHandler
     @ParametersAreNonnullByDefault
     public static void injectNetworkWrapper(ModContainer mod, ModFileScanData scanData)
     {
-        Stream<ModFileScanData.AnnotationData> annotations = scanData.getAnnotations().stream()
-                .filter(annotationData -> Type.getType(NetworkChannel.class).equals(annotationData.getAnnotationType()) &&
-                        Type.getType(mod.getMod().getClass()).equals(annotationData.getClassType()));
-
-        annotations.forEach(annotation ->
+        for (ModFileScanData.AnnotationData annotation : scanData.getAnnotations())
         {
+            Class<?> targetClass = mod.getMod().getClass();
+            if (!Type.getType(NetworkChannel.class).equals(annotation.getAnnotationType()))
+                continue;
+            if (!Type.getType(targetClass).equals(annotation.getClassType()))
+                continue;
+
             try
             {
-                Class<?> targetClass = mod.getMod().getClass();
                 Field field = targetClass.getDeclaredField(annotation.getMemberName());
+                if (!Modifier.isStatic(field.getModifiers()))
+                    continue;
 
                 field.setAccessible(true);
 
+                String version = mod.getModInfo().getVersion().toString();
                 SimpleChannel channel = NetworkRegistry.ChannelBuilder
-                        .named(new ResourceLocation(mod.getModId(), "main"))
-                        .clientAcceptedVersions(version -> version.equals(mod.getModInfo().getVersion().toString()))
-                        .serverAcceptedVersions(version -> version.equals(mod.getModInfo().getVersion().toString()))
-                        .networkProtocolVersion(() -> mod.getModInfo().getVersion().toString())
+                        .named(new ResourceLocation(mod.getModId(), annotation.getMemberName().toLowerCase()))
+                        .clientAcceptedVersions(v -> v.equals(version))
+                        .serverAcceptedVersions(v -> v.equals(version))
+                        .networkProtocolVersion(() -> version)
                         .simpleChannel();
 
                 field.set(null, channel);
@@ -60,9 +65,9 @@ public class NetworkHandler
             }
             catch (Exception e)
             {
-                OrmoyoUtil.LOGGER.fatal("Failed to inject network wrapper for mod container {}", mod, e);
+                OrmoyoUtil.LOGGER.error("Failed to inject network wrapper for mod container {}", mod, e);
             }
-        });
+        }
     }
 
     @ParametersAreNonnullByDefault
@@ -72,11 +77,12 @@ public class NetworkHandler
                 .filter(annotationData -> Type.getType(NetworkMessage.class).equals(annotationData.getAnnotationType()))
                 .sorted(Comparator.comparing(a -> a.getClassType().getInternalName()));
 
-        Stream<ModFileScanData.AnnotationData> networkDecoders = scanData.getAnnotations().stream()
-                .filter(annotationData -> Type.getType(NetworkDecoder.class).equals(annotationData.getAnnotationType()));
-
-        networkDecoders.forEach(annotation ->
+        for (ModFileScanData.AnnotationData annotation : scanData.getAnnotations())
         {
+            Type type = annotation.getAnnotationType();
+            if (!Type.getType(NetworkDecoder.class).equals(type))
+                continue;
+
             List<Type> classes = (List<Type>) annotation.getAnnotationData().get("value");
             String className = annotation.getClassType().getClassName();
 
@@ -106,16 +112,15 @@ public class NetworkHandler
             {
                 throw new RuntimeException(e);
             }
+        }
 
-        });
-        messages.forEach(annotation ->
-        {
+        messages.forEach(annotation -> {
             String modid = (String) annotation.getAnnotationData().get("modid");
             String className = annotation.getClassType().getClassName();
 
             if (!channels.containsKey(modid))
             {
-                OrmoyoUtil.LOGGER.fatal("Couldn't register network message {} because the mod {} doesn't exist or doesn't have a channel", className, modid);
+                OrmoyoUtil.LOGGER.error("Couldn't register network message {} because the mod {} doesn't exist or doesn't have a channel", className, modid);
                 return;
             }
 
@@ -124,7 +129,7 @@ public class NetworkHandler
                 Class<?> clazz = Class.forName(className);
                 if (!AbstractMessage.class.isAssignableFrom(clazz))
                 {
-                    OrmoyoUtil.LOGGER.fatal("Network message {} doesn't extend AbstractMessage", className);
+                    OrmoyoUtil.LOGGER.error("Network message {} doesn't extend AbstractMessage", className);
                     return;
                 }
 
@@ -147,7 +152,7 @@ public class NetworkHandler
             }
             catch (ClassNotFoundException e)
             {
-                OrmoyoUtil.LOGGER.fatal("Failed to find network message {} class", className);
+                OrmoyoUtil.LOGGER.error("Failed to find network message class {}", className);
             }
         });
     }
@@ -166,7 +171,7 @@ public class NetworkHandler
 
         if (!decoders.containsKey(clazz))
         {
-            OrmoyoUtil.LOGGER.fatal("Couldn't find network decoder for message {} or it doesn't exist", clazz.getName());
+            OrmoyoUtil.LOGGER.error("Couldn't find network decoder for message {} or it doesn't exist", clazz.getName());
             return;
         }
 

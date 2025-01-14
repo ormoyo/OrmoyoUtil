@@ -2,25 +2,20 @@ package com.ormoyo.ormoyoutil;
 
 import com.google.common.base.Preconditions;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
-import com.ormoyo.ormoyoutil.ability.Ability;
-import com.ormoyo.ormoyoutil.ability.AbilityEntry;
-import com.ormoyo.ormoyoutil.ability.AbilityKeybindingBase;
 import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.capability.AbilityHolderImpl;
 import com.ormoyo.ormoyoutil.capability.AbilityHolderStorage;
+import com.ormoyo.ormoyoutil.client.InjectRender;
 import com.ormoyo.ormoyoutil.client.OrmoyoResourcePackListener;
 import com.ormoyo.ormoyoutil.network.NetworkChannel;
 import com.ormoyo.ormoyoutil.network.NetworkHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.resources.IReloadableResourceManager;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -74,6 +69,11 @@ public class OrmoyoUtil
 
     private void doClientStuff(FMLClientSetupEvent event)
     {
+        for (ModFileScanData data : ModList.get().getAllScanData())
+        {
+            InjectRender.Handler.injectRender(data);
+        }
+
         event.enqueueWork(() ->
         {
             Minecraft mc = event.getMinecraftSupplier().get();
