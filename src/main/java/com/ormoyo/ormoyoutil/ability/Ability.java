@@ -120,6 +120,11 @@ public abstract class Ability
         return AbilityEventHandler.CLIENT_ABILITIES.contains(this.getEntry().getAbilityClass());
     }
 
+    public boolean isSharedByClients()
+    {
+        return AbilityEventHandler.SHARED_ABILITIES.contains(this.getEntry().getAbilityClass());
+    }
+
     public AbilityHolder getHolder()
     {
         return this.holder;
