@@ -1,7 +1,5 @@
 package com.ormoyo.ormoyoutil.ability;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
@@ -15,6 +13,7 @@ import com.ormoyo.ormoyoutil.capability.AbilityHolder;
 import com.ormoyo.ormoyoutil.capability.AbilityHolderProvider;
 import com.ormoyo.ormoyoutil.commands.AbilitiesCommand;
 import com.ormoyo.ormoyoutil.commands.AcquireAbilityCommand;
+import com.ormoyo.ormoyoutil.event.AbilityEvents;
 import com.ormoyo.ormoyoutil.event.FontRenderEvent;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilities;
 import com.ormoyo.ormoyoutil.network.MessageSetAbilityKeys;
@@ -39,6 +38,7 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -212,6 +212,17 @@ class AbilityEventHandler
         OrmoyoUtil.NETWORK_CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) event.getPlayer()),
                 new MessageSetAbilities(abilityHolder, entries));
+    }
+
+    @SubscribeEvent
+    public static void onPlayerJoin(EntityJoinWorldEvent event)
+    {
+        if (EffectiveSide.get().isClient())
+            return;
+        if (!(event.getEntity() instanceof PlayerEntity))
+            return;
+
+        LISTENERS.setCapacity(LISTENERS.capacity() + 16);
     }
 
     @SubscribeEvent
@@ -389,6 +400,25 @@ class AbilityEventHandler
             ModBusEventHandler.register(event, RenderLivingEvent.class, ModBusEventHandler.ClientEventPredicates.RENDER_LIVING_EVENT);
             ModBusEventHandler.register(event, RenderArmEvent.class, ModBusEventHandler.ClientEventPredicates.RENDER_ARM_EVENT);
             ModBusEventHandler.register(event, ClientPlayerNetworkEvent.class, ModBusEventHandler.ClientEventPredicates.CLIENT_PLAYER_NETWORK_EVENT);
+        }
+
+        @SubscribeEvent
+        public static void onClientLogin(ClientPlayerNetworkEvent.LoggedInEvent event)
+        {
+            LISTENERS.setCapacity(16);
+        }
+
+        @SubscribeEvent
+        public static void onAbilityUnlocked(AbilityEvents.AbilityUnlockedEvent event)
+        {
+            if (EffectiveSide.get().isServer())
+                return;
+            if (event.getPlayer().isUser())
+                return;
+            if (!event.getAbility().isSharedByClients())
+                return;
+
+            LISTENERS.setCapacity(LISTENERS.capacity() + 4);
         }
     }
 
