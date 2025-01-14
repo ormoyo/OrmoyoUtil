@@ -2,6 +2,7 @@ package com.ormoyo.ormoyoutil.client.font;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -39,7 +40,7 @@ public class FontHelper
     public static void drawString(Font font, String text, float x, float y, float scale, int color)
     {
         FontInfo info = fontInfo.get(font.getRegistryName());
-        Multimap<ResourceLocation, TexturedRect> batches = HashMultimap.create();
+        Multimap<ResourceLocation, TexturedRect> batches = ArrayListMultimap.create();
 
         FontRenderEvent.Pre event = new FontRenderEvent.Pre(text, font);
         if (MinecraftForge.EVENT_BUS.post(event))
@@ -180,7 +181,7 @@ public class FontHelper
             {
                 case CENTER:
                     cursorX = lineWidth / 2;
-                    cursorX -= FontHelper.getStringWidth(font, line) * scale * 0.5;
+                    cursorX -= (float) (FontHelper.getStringWidth(font, line) * scale * 0.5);
 
                     break;
                 case RIGHT:

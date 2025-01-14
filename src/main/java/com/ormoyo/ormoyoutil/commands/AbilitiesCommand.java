@@ -23,7 +23,6 @@ public class AbilitiesCommand
     private static int printAbilities(CommandSource source) throws CommandSyntaxException
     {
         AbilityHolder abilityHolder = Ability.getAbilityHolder(source.asPlayer());
-
         if (abilityHolder == null || abilityHolder.getAbilities().isEmpty())
         {
             source.sendFeedback(new TranslationTextComponent("commands.ormoyoutil.noabilities"), true);

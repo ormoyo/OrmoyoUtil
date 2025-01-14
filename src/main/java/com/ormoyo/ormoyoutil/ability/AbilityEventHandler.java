@@ -61,6 +61,7 @@ import net.minecraftforge.fml.loading.moddiscovery.ModAnnotation;
 import net.minecraftforge.fml.network.PacketDistributor;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 import net.minecraftforge.forgespi.language.ModFileScanData;
+import net.minecraftforge.registries.ForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryModifiable;
 import net.minecraftforge.registries.RegistryBuilder;

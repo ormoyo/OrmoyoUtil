@@ -33,7 +33,7 @@ public class AbilityEvents extends PlayerEvent
         @Cancelable
         public static class LevelUpEvent extends StatsEvents
         {
-            private final int level;
+            private int level;
 
             public LevelUpEvent(StatsAbility stats, int level)
             {
@@ -44,6 +44,11 @@ public class AbilityEvents extends PlayerEvent
             public int getLevel()
             {
                 return this.level;
+            }
+
+            public void addLevels(int count)
+            {
+                this.level += count;
             }
         }
 
@@ -94,9 +99,9 @@ public class AbilityEvents extends PlayerEvent
      * OnAbilityUnlockedEvent is fired when a player unlocks an ability
      */
     @Cancelable
-    public static class OnAbilityUnlockedEvent extends AbilityEvents
+    public static class AbilityUnlockedEvent extends AbilityEvents
     {
-        public OnAbilityUnlockedEvent(Ability ability)
+        public AbilityUnlockedEvent(Ability ability)
         {
             super(ability);
         }
