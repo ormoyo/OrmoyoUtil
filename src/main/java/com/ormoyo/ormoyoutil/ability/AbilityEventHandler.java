@@ -2,6 +2,7 @@ package com.ormoyo.ormoyoutil.ability;
 
 import com.google.common.collect.Sets;
 import com.ormoyo.ormoyoutil.OrmoyoUtil;
+import com.ormoyo.ormoyoutil.abilities.DebugAbility;
 import com.ormoyo.ormoyoutil.abilities.StatsAbility;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventEntry;
 import com.ormoyo.ormoyoutil.ability.event.AbilityEventListener;
@@ -552,18 +553,16 @@ class AbilityEventHandler
                     .create();
         }
 
-        @SuppressWarnings("unchecked") //Ugly hack to let us pass in a typed Class object. Remove when we remove type specific references.
-        private static <T> Class<T> c(Class<?> cls)
-        {
-            return (Class<T>)cls;
-        }
-
         @SubscribeEvent
         public static void registerAbilities(RegistryEvent.Register<AbilityEntry<?>> event)
         {
             event.getRegistry().register(AbilityEntryBuilder.<StatsAbility>create()
                     .ability(StatsAbility.class)
                     .id(new ResourceLocation(OrmoyoUtil.MODID, "stats"))
+                    .build());
+            event.getRegistry().register(AbilityEntryBuilder.<DebugAbility>create()
+                    .ability(DebugAbility.class)
+                    .id(new ResourceLocation(OrmoyoUtil.MODID, "debug"))
                     .build());
         }
 
