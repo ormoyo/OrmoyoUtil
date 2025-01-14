@@ -25,7 +25,7 @@ public abstract class Ability
 
     public Ability(AbilityHolder owner)
     {
-        this.owner = owner != null ? owner.asPlayer() : null;
+        this.holder = owner;
         this.entry = Ability.getAbilityClassEntry(this.getClass());
 
         this.syncManager = new AbilitySyncManager(this);
@@ -37,7 +37,7 @@ public abstract class Ability
     private final AbilityEntry<?> entry;
     protected final AbilitySyncManager syncManager;
 
-    protected final PlayerEntity owner;
+    private final AbilityHolder holder;
     private int messagesCheckingTicks;
 
     /*
@@ -120,9 +120,14 @@ public abstract class Ability
         return AbilityEventHandler.CLIENT_ABILITIES.contains(this.getEntry().getAbilityClass());
     }
 
+    public AbilityHolder getHolder()
+    {
+        return this.holder;
+    }
+
     public PlayerEntity getOwner()
     {
-        return this.owner;
+        return this.getHolder().asPlayer();
     }
 
     public ITextComponent getName()

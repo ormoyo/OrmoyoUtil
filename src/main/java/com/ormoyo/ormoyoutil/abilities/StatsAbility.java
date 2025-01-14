@@ -12,6 +12,7 @@ import com.ormoyo.ormoyoutil.network.datasync.AbilitySyncManager;
 import com.ormoyo.ormoyoutil.util.MathUtils;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.util.math.MathHelper;
@@ -52,61 +53,55 @@ public class StatsAbility extends Ability
     @SubscribeEvent
     public void onDeathEvent(LivingDeathEvent event)
     {
-        System.out.println(Ability.getAbilityCapability());
         if (OrmoyoUtil.Config.LEVEL_SYSTEM.USE_MINECRAFT_LEVELING.get())
             return;
+        if (!EffectiveSide.get().isServer() || event.getSource().getTrueSource() == null)
+            return;
 
-        if (EffectiveSide.get().isServer() && event.getSource().getTrueSource() != null)
+        PlayerEntity owner = this.getOwner();
+        if (!event.getSource().getTrueSource().equals(owner))
+            return;
+
+        int exp = 1;
+        if (event.getEntityLiving() instanceof IMob)
+            exp = 5;
+
+        if (entityToExp.containsKey(event.getEntityLiving().getClass()))
+            exp = entityToExp.get(event.getEntityLiving().getClass());
+
+        CalculateEntityExp expEvent = new CalculateEntityExp(this, event.getEntityLiving(), exp);
+        if (MinecraftForge.EVENT_BUS.post(expEvent))
+            return;
+
+        exp = expEvent.getExp();
+        switch (owner.world.getDifficulty())
         {
-            if (!event.getSource().getTrueSource().equals(this.owner))
-                return;
+            case EASY:
+                if (owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.EASY_SUCCESS_RATE.get())
+                    this.setEXP(this.getEXP() + exp);
 
-            int exp = 1;
-            if (event.getEntityLiving() instanceof IMob)
-                exp = 5;
+                break;
+            case NORMAL:
+                if (owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.NORMAL_SUCCESS_RATE.get())
+                    this.setEXP(this.getEXP() + exp);
 
-            if (entityToExp.containsKey(event.getEntityLiving().getClass()))
-                exp = entityToExp.get(event.getEntityLiving().getClass());
+                break;
+            case HARD:
+                if (owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.HARD_SUCCESS_RATE.get())
+                    this.setEXP(this.getEXP() + exp);
 
-            CalculateEntityExp expEvent = new CalculateEntityExp(this, event.getEntityLiving(), exp);
+                break;
+            case PEACEFUL:
+                if (owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.PEACEFUL_SUCCESS_RATE.get())
+                    this.setEXP(this.getEXP() + exp);
 
-            if (MinecraftForge.EVENT_BUS.post(expEvent))
-                exp = 0;
-
-            exp = expEvent.getExp();
-            switch (this.owner.world.getDifficulty())
-            {
-                case EASY:
-                    if (this.owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.EASY_SUCCESS_RATE.get())
-                        this.setEXP(this.getEXP() + exp);
-
-                    break;
-                case NORMAL:
-                    if (this.owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.NORMAL_SUCCESS_RATE.get())
-                        this.setEXP(this.getEXP() + exp);
-
-                    break;
-                case HARD:
-                    if (this.owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.HARD_SUCCESS_RATE.get())
-                        this.setEXP(this.getEXP() + exp);
-
-                    break;
-                case PEACEFUL:
-                    if (this.owner.getRNG().nextDouble() < OrmoyoUtil.Config.LEVEL_SYSTEM.PEACEFUL_SUCCESS_RATE.get())
-                        this.setEXP(this.getEXP() + exp);
-
-                    break;
-            }
-
-            if (this.getEXP() >= this.getRequiredEXP())
-            {
-                LevelUpEvent e = new LevelUpEvent(this, this.getLevel() + 1);
-                if (MinecraftForge.EVENT_BUS.post(e))
-                    return;
-
-                this.levelUp();
-            }
+                break;
         }
+
+        if (this.getEXP() < this.getRequiredEXP())
+            return;
+
+        this.levelUp();
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -115,11 +110,10 @@ public class StatsAbility extends Ability
         if (!OrmoyoUtil.Config.LEVEL_SYSTEM.USE_MINECRAFT_LEVELING.get())
             return;
 
-        AbilityHolder holder = Ability.getAbilityHolder(this.getOwner());
-
-        for (AbilityEntry entry : Ability.getAbilityRegistry())
+        AbilityHolder holder = this.getHolder();
+        for (AbilityEntry<?> entry : Ability.getAbilityRegistry())
         {
-            if (holder.getAbility(entry.getRegistryName()) != null)
+            if (holder.getAbility(entry.getAbilityClass()) != null)
                 continue;
 
             if (event.getLevels() >= entry.getLevel())
@@ -151,11 +145,19 @@ public class StatsAbility extends Ability
     @SuppressWarnings("ConstantConditions")
     public void levelUp()
     {
-        this.setLevel(this.getLevel() + 1);
+        int level = this.getLevel() + 1;
+
+        LevelUpEvent e = new LevelUpEvent(this, level);
+        if (MinecraftForge.EVENT_BUS.post(e))
+            return;
+
+        level = e.getLevel();
+
+        this.setLevel(level);
         this.setEXP(Math.max(this.getEXP() - this.getRequiredEXP(), 0));
 
         int multiplayer = 1;
-        switch (this.owner.world.getDifficulty())
+        switch (this.getOwner().world.getDifficulty())
         {
             case EASY:
                 multiplayer = 2;
@@ -170,19 +172,20 @@ public class StatsAbility extends Ability
                 break;
         }
 
-        this.setRequiredEXP(this.getRequiredEXP() + MathUtils.randomInt(this.owner.getRNG(), this.getLevel(), MathHelper.clamp(multiplayer * this.getLevel(), this.getLevel(), Integer.MAX_VALUE - 1)));
+        int min = this.getLevel();
+        int max = Math.max(multiplayer * min, min);
 
-        AbilityHolder holder = Ability.getAbilityHolder(this.getOwner());
-        for (AbilityEntry entry : Ability.getAbilityRegistry())
+        this.setRequiredEXP(this.getRequiredEXP() + MathUtils.randomInt(this.getOwner().getRNG(), min, max));
+
+        AbilityHolder holder = this.getHolder();
+        for (AbilityEntry<?> entry : Ability.getAbilityRegistry())
         {
-            if (holder.getAbility(entry.getRegistryName()) != null)
+            if (holder.getAbility(entry.getAbilityClass()) != null)
+                continue;
+            if (this.getLevel() < entry.getLevel())
                 continue;
 
-            if (this.getLevel() >= entry.getLevel())
-            {
-                holder.unlockAbility(entry);
-                return;
-            }
+            holder.unlockAbility(entry);
         }
     }
 
